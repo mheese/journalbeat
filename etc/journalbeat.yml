@@ -1,0 +1,15 @@
+input:
+  write_cursor_state: true
+  cursor_state_file: /tmp/journalbeat-cursor-state
+  flush_cursor_secs: 3
+  seek_to_cursor: true
+  seek_to_head: false
+  seek_to_tail: true
+  clean_field_names: true
+  convert_to_numbers: true
+  move_metadata_to_field: journal
+output:
+  console:
+    pretty: true
+  #logstash:
+  #  hosts: ["localhost:5044"]
