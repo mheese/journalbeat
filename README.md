@@ -9,6 +9,20 @@ Journalbeat is targeting pure systemd distributions like CoreOS, Atomic Host, or
 others. There are no intentions to add support for older systems that do not use
 journald.
 
+## Use Cases and Goals
+
+Besides from the obvious use case (log shipping) the goal of this project is also
+to provide a common source for more advanced topics like:
+- FIM (File Integrity Monitoring)
+- SIEM
+- Audit Logs / Monitoring
+
+This is all possible because of the tight integration of the Linux audit events
+into journald. That said _journalbeat_ can only provide the data source for
+these more advanced use cases. We need to develop additional pieces for
+monitoring and alerting - as well as hopefully a standardized Kibana dashboard
+to cover these features.
+
 ## Documentation
 
 None so far. As of this writing, this is the first commit. There are things to
@@ -18,7 +32,7 @@ should be self-explanatory for the time being.
 ## Build
 
 Without checking out this repository, you can get a compiled version of this by
-doing some like the following:
+doing something like the following (tested with Go 1.5.2 on Fedora 23):
 
 ```
 mkdir journalbeat
@@ -46,4 +60,4 @@ Journalbeat currently uses a forked version of [go-systemd](https://github.com/c
 ### cgo
 
 The underlying system library [go-systemd](https://github.com/coreos/go-systemd) makes heavy usage of cgo and the final binary will be linked against all client libraries that are needed in order to interact with sd-journal. That means that
-the resulting binary is not really platform / distribution independent (which is kind of expected in a way).
+the resulting binary is not really Linux distribution independent (which is kind of expected in a way).
