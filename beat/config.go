@@ -14,6 +14,10 @@
 
 package beat
 
+import (
+  "github.com/elastic/beats/libbeat/common"
+)
+
 // JournalReaderConfig provides the config settings for the journald reader
 type JournalReaderConfig struct {
 	WriteCursorState     *bool   `yaml:"write_cursor_state"`
@@ -25,6 +29,7 @@ type JournalReaderConfig struct {
 	ConvertToNumbers     *bool   `yaml:"convert_to_numbers"`
 	CleanFieldNames      *bool   `yaml:"clean_field_names"`
 	MoveMetadataLocation *string `yaml:"move_metadata_to_field"`
+	Fields               *common.MapStr `yaml:"fields"`
 }
 
 // ConfigSettings holds JournalConfig at the Input section of the config file
