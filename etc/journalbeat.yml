@@ -1,3 +1,6 @@
+shipper:
+  name: journalbeat
+  #tags: [ "blue", "red" ]
 input:
   write_cursor_state: true
   cursor_state_file: /tmp/journalbeat-cursor-state
@@ -6,10 +9,13 @@ input:
   seek_to_head: false
   seek_to_tail: true
   clean_field_names: true
-  convert_to_numbers: true
+  convert_to_numbers: false
   move_metadata_to_field: journal
+  #fields_dest: my.nested.destination
   #fields:
   #  custom_field: custom_value
+  #  sub:
+  #    nested: field
 output:
   console:
     pretty: true

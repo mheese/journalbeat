@@ -39,6 +39,7 @@ type Journalbeat struct {
 	convertToNumbers     bool
 	cleanFieldnames      bool
 	moveMetadataLocation string
+	fieldsDest           string
 	fields               common.MapStr
 
 	jr   *sdjournal.JournalReader
@@ -118,6 +119,12 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 		jb.moveMetadataLocation = *jb.JbConfig.Input.MoveMetadataLocation
 	} else {
 		jb.moveMetadataLocation = ""
+	}
+
+	if jb.JbConfig.Input.FieldsDest != nil {
+		jb.fieldsDest = *jb.JbConfig.Input.FieldsDest
+	} else {
+		jb.fieldsDest = ""
 	}
 
 	if jb.JbConfig.Input.Fields != nil {
@@ -270,7 +277,26 @@ func Publish(beat *beat.Beat, jb *Journalbeat) {
 
 		// add arbitrary fields.
 		if jb.fields != nil {
-			m["fields"] = jb.fields
+			fieldsMap := MapStrMoveMapToLocation(jb.fields, jb.fieldsDest)
+
+			// NOTE: this will overwrite everything at the location
+			for k, v := range fieldsMap {
+				m[k] = v
+			}
+		}
+
+		// add type if it does not exist yet (or if it is not a string)
+		// TODO: type should be derived from the system journal
+		_, ok := m["type"].(string)
+		if !ok {
+			m["type"] = "unknown"
+		}
+
+		// add input_type if it does not exist yet (or if it is not a string)
+		// TODO: input_type should be derived from the system journal
+		_, ok = m["input_type"].(string)
+		if !ok {
+			m["input_type"] = "journal"
 		}
 
 		// publish the event now

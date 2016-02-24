@@ -95,7 +95,45 @@ func MapStrMoveJournalMetadata(in common.MapStr, location string) common.MapStr 
 	if okMsg {
 		m["message"] = msg
 	}
-	m[location] = in
+
+	// move nested like with fields
+	mm := MapStrMoveMapToLocation(in, location)
+	for k, v := range mm {
+		m[k] = v
+	}
+
+	return m
+}
+
+func MapStrMoveMapToLocation(in common.MapStr, location string) common.MapStr {
+	// nothing to move
+	if location == "" {
+		return in
+	}
+
+	m := make(common.MapStr)
+	dests := strings.Split(location, ".")
+
+	// oh man ... this would be so easy in a recursive function
+	// welcome to stupid optimized iterative style ...
+	var newM common.MapStr
+	for i := 0; i < len(dests); i++ {
+		if i == 0 {
+			newM = m
+		}
+
+		if i+1 == len(dests) {
+			n := dests[i]
+			newM[n] = in
+			break
+		}
+
+		tmp := make(common.MapStr)
+		n := dests[i]
+		newM[n] = tmp
+		newM = tmp
+
+	}
 
 	return m
 }
