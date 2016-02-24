@@ -31,12 +31,15 @@ should be self-explanatory for the time being.
 
 ## Build
 
+You need to install some development packages before you can build this. In a
+RHEL or Fedora environment, you need to install the `systemd-devel` package e.g.
+
 Without checking out this repository, you can get a compiled version of this by
 doing something like the following (tested with Go 1.5.2 on Fedora 23):
 
 ```
 mkdir journalbeat
-go get github.com/elastic/beats
+go get github.com/elastic/beats/libbeat
 go get github.com/garyburd/redigo
 go get github.com/nranchev/go-libGeoIP
 go get github.com/satori/go.uuid
