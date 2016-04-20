@@ -224,7 +224,9 @@ func (jb *Journalbeat) Setup(b *beat.Beat) error {
 func (jb *Journalbeat) Cleanup(b *beat.Beat) error {
 	logp.Info("Journalbeat Cleanup")
 	jb.jr.Close()
-	jb.cursorChanFlush <- 1
+	if jb.writeCursorState {
+		jb.cursorChanFlush <- 1
+	}
 	close(jb.done)
 	close(jb.recv)
 	close(jb.cursorChan)
