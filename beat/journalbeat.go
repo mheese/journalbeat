@@ -191,7 +191,7 @@ func (jb *Journalbeat) seekToPosition() error {
 // Setup prepares Journalbeat for the main loop (starts journalreader, etc.)
 func (jb *Journalbeat) Setup(b *beat.Beat) error {
 	logp.Info("Journalbeat Setup")
-	jb.output = b.Events
+	jb.output = b.Publisher.Connect()
 	jb.done = make(chan int)
 	jb.recv = make(chan sdjournal.JournalEntry)
 	jb.cursorChan = make(chan string)
