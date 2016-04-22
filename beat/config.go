@@ -20,20 +20,20 @@ import (
 
 // JournalReaderConfig provides the config settings for the journald reader
 type JournalReaderConfig struct {
-	WriteCursorState     *bool          `yaml:"write_cursor_state"`
-	CursorStateFile      *string        `yaml:"cursor_state_file"`
-	FlushCursorSecs      *int           `yaml:"flush_cursor_secs"`
-	SeekToCursor         *bool          `yaml:"seek_to_cursor"`
-	SeekToHead           *bool          `yaml:"seek_to_head"`
-	SeekToTail           *bool          `yaml:"seek_to_tail"`
-	ConvertToNumbers     *bool          `yaml:"convert_to_numbers"`
-	CleanFieldNames      *bool          `yaml:"clean_field_names"`
-	MoveMetadataLocation *string        `yaml:"move_metadata_to_field"`
-	FieldsDest           *string        `yaml:"fields_dest"`
-	Fields               *common.MapStr `yaml:"fields"`
+	WriteCursorState     *bool          `config:"write_cursor_state"`
+	CursorStateFile      *string        `config:"cursor_state_file"`
+	FlushCursorSecs      *int           `config:"flush_cursor_secs"`
+	SeekToCursor         *bool          `config:"seek_to_cursor"`
+	SeekToHead           *bool          `config:"seek_to_head"`
+	SeekToTail           *bool          `config:"seek_to_tail"`
+	ConvertToNumbers     *bool          `config:"convert_to_numbers"`
+	CleanFieldNames      *bool          `config:"clean_field_names"`
+	MoveMetadataLocation *string        `config:"move_metadata_to_field"`
+	FieldsDest           *string        `config:"fields_dest"`
+	Fields               *common.MapStr `config:"fields"`
 }
 
 // ConfigSettings holds JournalConfig at the Input section of the config file
 type ConfigSettings struct {
-	Input JournalReaderConfig
+	Input JournalReaderConfig `config:"input"`
 }
