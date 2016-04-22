@@ -23,9 +23,8 @@ type JournalReaderConfig struct {
 	WriteCursorState     *bool          `config:"write_cursor_state"`
 	CursorStateFile      *string        `config:"cursor_state_file"`
 	FlushCursorSecs      *int           `config:"flush_cursor_secs"`
-	SeekToCursor         *bool          `config:"seek_to_cursor"`
-	SeekToHead           *bool          `config:"seek_to_head"`
-	SeekToTail           *bool          `config:"seek_to_tail"`
+	SeekPosition         *string        `config:"seek_position"`
+	CursorSeekFallback   *string        `config:"cursor_seek_fallback"`
 	ConvertToNumbers     *bool          `config:"convert_to_numbers"`
 	CleanFieldNames      *bool          `config:"clean_field_names"`
 	MoveMetadataLocation *string        `config:"move_metadata_to_field"`

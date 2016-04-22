@@ -27,15 +27,26 @@ import (
 	"github.com/mheese/go-systemd/sdjournal"
 )
 
+var SeekPositions = map[string]bool{
+	"cursor": true,
+	"head":   true,
+	"tail":   true,
+}
+
+var SeekFallbackPositions = map[string]bool{
+	"none": true,
+	"head": true,
+	"tail": true,
+}
+
 // Journalbeat is the main Journalbeat struct
 type Journalbeat struct {
 	JbConfig             ConfigSettings
 	writeCursorState     bool
 	cursorStateFile      string
 	cursorFlushSecs      int
-	seekToCursor         bool
-	seekToHead           bool
-	seekToTail           bool
+	seekPosition         string
+	cursorSeekFallback   string
 	convertToNumbers     bool
 	cleanFieldnames      bool
 	moveMetadataLocation string
@@ -85,22 +96,16 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 		jb.cursorFlushSecs = 5
 	}
 
-	if jb.JbConfig.Input.SeekToCursor != nil {
-		jb.seekToCursor = *jb.JbConfig.Input.SeekToCursor
+	if jb.JbConfig.Input.SeekPosition != nil {
+		jb.seekPosition = *jb.JbConfig.Input.SeekPosition
 	} else {
-		jb.seekToCursor = false
+		jb.seekPosition = "tail"
 	}
 
-	if jb.JbConfig.Input.SeekToHead != nil {
-		jb.seekToHead = *jb.JbConfig.Input.SeekToHead
+	if jb.JbConfig.Input.CursorSeekFallback != nil {
+		jb.cursorSeekFallback = *jb.JbConfig.Input.CursorSeekFallback
 	} else {
-		jb.seekToHead = false
-	}
-
-	if jb.JbConfig.Input.SeekToTail != nil {
-		jb.seekToTail = *jb.JbConfig.Input.SeekToTail
-	} else {
-		jb.seekToTail = true
+		jb.cursorSeekFallback = "tail"
 	}
 
 	if jb.JbConfig.Input.ConvertToNumbers != nil {
@@ -131,60 +136,59 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 		jb.fields = *jb.JbConfig.Input.Fields
 	}
 
-	if !jb.seekToCursor && !jb.seekToHead && !jb.seekToTail {
-		errMsg := "Either seek_to_cursor, seek_to_head or seek_to_tail need to be true"
+	if _, ok := SeekPositions[jb.seekPosition]; !ok {
+		errMsg := "seek_position must be either cursor, head, or tail"
 		logp.Err(errMsg)
 		return fmt.Errorf("%s", errMsg)
 	}
+
+	if _, ok := SeekFallbackPositions[jb.cursorSeekFallback]; !ok {
+		errMsg := "cursor_seek_fallback must be either head, tail, or none"
+		logp.Err(errMsg)
+		return fmt.Errorf("%s", errMsg)
+	}
+
 	return nil
 }
 
 func (jb *Journalbeat) seekToPosition() error {
-	var err error
+	position := jb.seekPosition
 	// try seekToCursor first, if that is requested
-	if jb.seekToCursor {
-		cursor, err2 := ioutil.ReadFile(jb.cursorStateFile)
+	if position == "cursor" {
+		cursor, err := ioutil.ReadFile(jb.cursorStateFile)
 		if err != nil {
-			err = fmt.Errorf("reading cursor state file failed: %v", err2)
-			logp.Err("Could not seek to cursor: %v", err)
+			logp.Warn("Could not seek to cursor: reading cursor state file failed: %v", err)
 		} else {
-			// try to seek to cursor
-			err2 = jb.jr.Journal.SeekCursor(string(cursor))
-			if err2 != nil {
-				err = fmt.Errorf("seek to cursor failed: %v", err2)
-				logp.Err("Could not seek to cursor: %v", err)
-			} else {
-				// seeking successful, return
-				logp.Info("Seek to cursor successful")
+			// try to seek to cursor and if successful return
+			err = seekToHelper("cursor", jb.jr.Journal.SeekCursor(string(cursor)))
+			if err == nil {
 				return nil
 			}
 		}
-	}
 
-	if jb.seekToHead {
-		err2 := jb.jr.Journal.SeekHead()
-		if err2 != nil {
-			err = fmt.Errorf("seek to head failed: %v", err2)
-			logp.Err("Could not seek to head: %v", err)
-		} else {
-			// seeking successful, return
-			logp.Info("Seek to head successful")
-			return nil
+		if jb.cursorSeekFallback == "none" {
+			return err
 		}
+
+		position = jb.cursorSeekFallback
 	}
 
-	if jb.seekToTail {
-		err2 := jb.jr.Journal.SeekTail()
-		if err2 != nil {
-			err = fmt.Errorf("seek to tail failed: %v", err2)
-			logp.Err("Could not seek to tail: %v", err)
-		} else {
-			// seeking successful, return
-			logp.Info("Seek to tail successful")
-			return nil
-		}
+	var err error
+	switch position {
+	case "head":
+		err = seekToHelper("head", jb.jr.Journal.SeekHead())
+	case "tail":
+		err = seekToHelper("tail", jb.jr.Journal.SeekTail())
 	}
+	return err
+}
 
+func seekToHelper(position string, err error) error {
+	if err == nil {
+		logp.Info("Seek to " + position + " successful")
+	} else {
+		logp.Warn("Could not seek to %s: %v", position, err)
+	}
 	return err
 }
 

@@ -2,12 +2,19 @@ shipper:
   name: journalbeat
   #tags: [ "blue", "red" ]
 input:
+  # What position in journald to seek to at start up
+  # options: cursor, tail, head (defaults to tail)
+  seek_position: cursor
+
+  # If seek_position is set to cursor and seeking to cursor fails
+  # fall back to this method.  If set to none will it will exit
+  # options: tail, head, none (defaults to tail)
+  cursor_seek_fallback: tail
+
   write_cursor_state: true
   cursor_state_file: /tmp/journalbeat-cursor-state
   flush_cursor_secs: 3
-  seek_to_cursor: true
-  seek_to_head: false
-  seek_to_tail: true
+
   clean_field_names: true
   convert_to_numbers: false
   move_metadata_to_field: journal
