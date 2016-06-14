@@ -18,6 +18,7 @@ input:
   clean_field_names: true
   convert_to_numbers: false
   move_metadata_to_field: journal
+  #default_type: journal
   #fields_dest: my.nested.destination
   #fields:
   #  custom_field: custom_value
