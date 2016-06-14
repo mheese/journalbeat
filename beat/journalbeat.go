@@ -196,7 +196,9 @@ func seekToHelper(position string, err error) error {
 func (jb *Journalbeat) Setup(b *beat.Beat) error {
 	logp.Info("Journalbeat Setup")
 	jb.output = b.Publisher.Connect()
-	jb.done = make(chan int)
+	// Buffer channel else write to it blocks when Stop is called while
+	// FollowJournal waits to write next  event
+	jb.done = make(chan int, 1)
 	jb.recv = make(chan sdjournal.JournalEntry)
 	jb.cursorChan = make(chan string)
 	jb.cursorChanFlush = make(chan int)
@@ -228,6 +230,7 @@ func (jb *Journalbeat) Setup(b *beat.Beat) error {
 func (jb *Journalbeat) Cleanup(b *beat.Beat) error {
 	logp.Info("Journalbeat Cleanup")
 	jb.jr.Close()
+	jb.output.Close()
 	if jb.writeCursorState {
 		jb.cursorChanFlush <- 1
 	}
@@ -258,7 +261,13 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 // Stop stops the journalbeat
 func (jb *Journalbeat) Stop() {
 	logp.Info("Journalbeat Stop")
+	// A little hack to get Followjournal to close correctly.
+	// Write to buffered close channel and then read next event
+	// else if Publish is stuck on a send it hangs
 	jb.done <- 1
+	select {
+	case <-jb.recv:
+	}
 }
 
 // Publish is used to publish read events to the beat output chain
@@ -266,14 +275,6 @@ func Publish(beat *beat.Beat, jb *Journalbeat) {
 	logp.Info("Start sending events to output")
 	for {
 		ev := <-jb.recv
-
-		// save cursor
-		if jb.writeCursorState {
-			cursor, ok := ev["__CURSOR"].(string)
-			if ok {
-				jb.cursorChan <- cursor
-			}
-		}
 
 		// do some conversion, etc.
 		m := MapStrFromJournalEntry(ev, jb.cleanFieldnames, jb.convertToNumbers)
@@ -307,7 +308,20 @@ func Publish(beat *beat.Beat, jb *Journalbeat) {
 
 		// publish the event now
 		//m := (common.MapStr)(ev)
-		jb.output.PublishEvent(m)
+		success := jb.output.PublishEvent(m, publisher.Sync, publisher.Guaranteed)
+		// should never happen but if it does should definitely log an not save cursor
+		if !success {
+			logp.Err("PublishEvent returned false for cursor %s", ev["__CURSOR"])
+			continue
+		}
+
+		// save cursor
+		if jb.writeCursorState {
+			cursor, ok := ev["__CURSOR"].(string)
+			if ok {
+				jb.cursorChan <- cursor
+			}
+		}
 	}
 }
 
