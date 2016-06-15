@@ -30,6 +30,7 @@ type JournalReaderConfig struct {
 	MoveMetadataLocation *string        `config:"move_metadata_to_field"`
 	FieldsDest           *string        `config:"fields_dest"`
 	Fields               *common.MapStr `config:"fields"`
+	DefaultType          *string        `config:"default_type"`
 }
 
 // ConfigSettings holds JournalConfig at the Input section of the config file

@@ -52,6 +52,7 @@ type Journalbeat struct {
 	moveMetadataLocation string
 	fieldsDest           string
 	fields               common.MapStr
+	defaultType          string
 
 	jr   *sdjournal.JournalReader
 	done chan int
@@ -134,6 +135,12 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 
 	if jb.JbConfig.Input.Fields != nil {
 		jb.fields = *jb.JbConfig.Input.Fields
+	}
+
+	if jb.JbConfig.Input.DefaultType != nil {
+		jb.defaultType = *jb.JbConfig.Input.DefaultType
+	} else {
+		jb.defaultType = "journal"
 	}
 
 	if _, ok := SeekPositions[jb.seekPosition]; !ok {
@@ -295,7 +302,7 @@ func Publish(beat *beat.Beat, jb *Journalbeat) {
 		// TODO: type should be derived from the system journal
 		_, ok := m["type"].(string)
 		if !ok {
-			m["type"] = "unknown"
+			m["type"] = jb.defaultType
 		}
 
 		// add input_type if it does not exist yet (or if it is not a string)
