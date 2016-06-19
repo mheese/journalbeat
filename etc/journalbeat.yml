@@ -1,6 +1,5 @@
-shipper:
-  name: journalbeat
-  #tags: [ "blue", "red" ]
+name: journalbeat
+#tags: [ "blue", "red" ]
 input:
   # What position in journald to seek to at start up
   # options: cursor, tail, head (defaults to tail)
@@ -19,11 +18,6 @@ input:
   convert_to_numbers: false
   move_metadata_to_field: journal
   #default_type: journal
-  #fields_dest: my.nested.destination
-  #fields:
-  #  custom_field: custom_value
-  #  sub:
-  #    nested: field
 output:
   console:
     pretty: true
