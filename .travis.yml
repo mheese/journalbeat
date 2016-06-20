@@ -1,0 +1,9 @@
+language: go
+
+sudo: required
+services:
+  - docker
+
+script:
+  - docker build -t journalbeat-packaging .
+  - docker run -it -v $PWD:/go/src/github.com/mheese/journalbeat:ro -v $PWD:/tmp:rw journalbeat-packaging
