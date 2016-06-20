@@ -1,0 +1,28 @@
+language: go
+sudo: required
+services:
+  - docker
+
+cache:
+  directories:
+    - vendor
+    - $GOPATH
+
+matrix:
+  include:
+    - env: DISTRO=centos
+    - env: DISTRO=fedora
+
+script:
+  - make "$DISTRO"
+
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: cKI6Z927ZVzI3ToFpzoNxwMwynstHdBIRPD+8cMsFozWXqVGZ0fdgVeCbc6S3/iwjXm4SK7fO5qyA98hyTHj3iGtXXrx6maGrFzdZxIqOg3EzZsi7HOpXvMwHb4xBIGX5KerbIiQAozI9UcXnlK6rAbn4ZU5aoC4Abm88pAvN4qLlEdbjA/pAVnrD4jOyGQjv4HaYr/dqsPmzMTT1lY9MWI4FQgAF/jSp3UTq0mFd5zs1AH7yLCEFZqghsWouwbTItMYMcymnn4QsE/fY1rcB7R8nuE2xmPJM5P+oUqLMu/Z7KwEFJVYliv65E7FPwFnZTMVrxlfXupSkPz7RjZAX7kp17h/ctOA5hdyVnYsYyNRPheEN3u8T8zZAnDFG3c5Vp2iKGTpqV5FFCcoDKrxMskFk4F5I1cPVqcMUEBaCJO2TiU5mlvA/39bzOdqjB+dM7RDjJ4+rpsvnci+V7L8/hUMGbrCIcm3lGDnIPsS0Fz3e69Knj8GOeJtZckMfZwCFfz+wza6vOpbjfIKvBGtorEUR19IuJRf2zTDwqsPxmyrucp8j8+UXFkpbt8qgvD+Q3rPdwbP2wEMrAnQRxUnSq2+ccXcmbQ+HAMN6/Xuw+cE+JkCyQ4i/iwzXelZkBUBfvEY15tiM90UUrnTp6EXsswtybdeOXTN5ZjGWg1zVis=
+  file:
+    - journalbeat-$DISTRO.tar.gz
+  on:
+    branches: master
+    tags: true

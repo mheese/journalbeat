@@ -23,3 +23,8 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Build/package files
+bin/
+build/
+Dockerfile
