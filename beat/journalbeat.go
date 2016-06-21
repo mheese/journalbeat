@@ -50,8 +50,6 @@ type Journalbeat struct {
 	convertToNumbers     bool
 	cleanFieldnames      bool
 	moveMetadataLocation string
-	fieldsDest           string
-	fields               common.MapStr
 	defaultType          string
 
 	jr   *sdjournal.JournalReader
@@ -125,16 +123,6 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 		jb.moveMetadataLocation = *jb.JbConfig.Input.MoveMetadataLocation
 	} else {
 		jb.moveMetadataLocation = ""
-	}
-
-	if jb.JbConfig.Input.FieldsDest != nil {
-		jb.fieldsDest = *jb.JbConfig.Input.FieldsDest
-	} else {
-		jb.fieldsDest = ""
-	}
-
-	if jb.JbConfig.Input.Fields != nil {
-		jb.fields = *jb.JbConfig.Input.Fields
 	}
 
 	if jb.JbConfig.Input.DefaultType != nil {
@@ -287,16 +275,6 @@ func Publish(beat *beat.Beat, jb *Journalbeat) {
 		m := MapStrFromJournalEntry(ev, jb.cleanFieldnames, jb.convertToNumbers)
 		if jb.moveMetadataLocation != "" {
 			m = MapStrMoveJournalMetadata(m, jb.moveMetadataLocation)
-		}
-
-		// add arbitrary fields.
-		if jb.fields != nil {
-			fieldsMap := MapStrMoveMapToLocation(jb.fields, jb.fieldsDest)
-
-			// NOTE: this will overwrite everything at the location
-			for k, v := range fieldsMap {
-				m[k] = v
-			}
 		}
 
 		// add type if it does not exist yet (or if it is not a string)
