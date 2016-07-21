@@ -14,10 +14,6 @@
 
 package beat
 
-import (
-	"github.com/elastic/beats/libbeat/common"
-)
-
 // JournalReaderConfig provides the config settings for the journald reader
 type JournalReaderConfig struct {
 	WriteCursorState     *bool   `config:"write_cursor_state"`
