@@ -1,0 +1,18 @@
+# Everything below here should be copied between every distro's Dockerfile
+
+# The version of golang in most distro's repos is too old to compile journalbeat,
+# so we use travis-ci/gimme to get a more recent version.
+RUN mkdir -p /go/src/github.com/mheese/journalbeat
+ENV GOPATH /go
+ENV GIMME_ENV_PREFIX /go/envs
+RUN curl -sLo /go/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme \
+  && chmod +x /go/gimme \
+  && /go/gimme 1.6.2
+
+WORKDIR /go/src/github.com/mheese/journalbeat
+CMD . ${GIMME_ENV_PREFIX}/go1.6.2.env \
+  && go get -d -v ./... \
+  && go test . ./beat \
+  && go build . \
+  && tar -cvf build/journalbeat-${DISTRO}.tar.gz journalbeat \
+  && chmod 0666 build/journalbeat-${DISTRO}.tar.gz

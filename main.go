@@ -20,8 +20,9 @@ import (
 )
 
 // Name is the name of the beat
-var Name = "journalbeat"
+const Name = "journalbeat"
+const Version = "0.1.0"
 
 func main() {
-	beat.Run(Name, "0.1.0", journalbeat.New())
+	beat.Run(Name, Version, journalbeat.New())
 }
