@@ -1,6 +1,4 @@
 FROM centos:7
 MAINTAINER mheese
 
-ENV DISTRO centos
-
 RUN yum install -y git tar gcc systemd systemd-devel make && yum -y clean all
