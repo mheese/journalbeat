@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/mheese/journalbeat.svg?branch=master)](https://travis-ci.org/mheese/journalbeat)
+
 # Journalbeat
 
 Journalbeat is the [Beat](https://www.elastic.co/products/beats) used for log
