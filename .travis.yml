@@ -1,29 +1,27 @@
 language: go
 sudo: required
 services:
-  - docker
-
+- docker
 env:
-  - DISTRO=centos
-  - DISTRO=fedora
-  - DISTRO=debian
-
+- DISTRO=centos
+- DISTRO=fedora
+- DISTRO=debian
 install: true
 script:
-  - docker ps -a
-  - mkdir -p build/
-  - cat ci/${DISTRO}.dockerfile.part ci/common.dockerfile.part > Dockerfile
-  - docker build -t journalbeat-${DISTRO}-packaging .
-  - docker run -v ${PWD}:/go/src/github.com/mheese/journalbeat:rw journalbeat-${DISTRO}-packaging
-  - mv journalbeat journalbeat-${DISTRO}
-
+- docker ps -a
+- mkdir -p build/
+- cat ci/${DISTRO}.dockerfile.part ci/common.dockerfile.part > Dockerfile
+- docker build -t journalbeat-${DISTRO}-packaging .
+- docker run -v ${PWD}:/go/src/github.com/mheese/journalbeat:rw journalbeat-${DISTRO}-packaging
+- mv journalbeat journalbeat-${DISTRO}
 deploy:
   skip_cleanup: true
   provider: releases
   api_key:
-    secure: cKI6Z927ZVzI3ToFpzoNxwMwynstHdBIRPD+8cMsFozWXqVGZ0fdgVeCbc6S3/iwjXm4SK7fO5qyA98hyTHj3iGtXXrx6maGrFzdZxIqOg3EzZsi7HOpXvMwHb4xBIGX5KerbIiQAozI9UcXnlK6rAbn4ZU5aoC4Abm88pAvN4qLlEdbjA/pAVnrD4jOyGQjv4HaYr/dqsPmzMTT1lY9MWI4FQgAF/jSp3UTq0mFd5zs1AH7yLCEFZqghsWouwbTItMYMcymnn4QsE/fY1rcB7R8nuE2xmPJM5P+oUqLMu/Z7KwEFJVYliv65E7FPwFnZTMVrxlfXupSkPz7RjZAX7kp17h/ctOA5hdyVnYsYyNRPheEN3u8T8zZAnDFG3c5Vp2iKGTpqV5FFCcoDKrxMskFk4F5I1cPVqcMUEBaCJO2TiU5mlvA/39bzOdqjB+dM7RDjJ4+rpsvnci+V7L8/hUMGbrCIcm3lGDnIPsS0Fz3e69Knj8GOeJtZckMfZwCFfz+wza6vOpbjfIKvBGtorEUR19IuJRf2zTDwqsPxmyrucp8j8+UXFkpbt8qgvD+Q3rPdwbP2wEMrAnQRxUnSq2+ccXcmbQ+HAMN6/Xuw+cE+JkCyQ4i/iwzXelZkBUBfvEY15tiM90UUrnTp6EXsswtybdeOXTN5ZjGWg1zVis=
+    secure: WEXhY3uegdyYgl1j5SZsZRiHD0ZlXZz9hYzikKecjvJFUCPuQHc76acHJV1LIgwLEnb/LKOhW78/KvHCz7JPtkeOaeYfzVec40DNaSSL5iAEcVO0h1j4n8AhQQmMpikwFehwoQcJggBQC4U4hO7a86a3obIlTDeyAWwygMWTEi7927te5Z9EsWpO0+dfBTczQg+77k24eZdsBENjAlp2B8vp2pl0RidC3lSBHnEPh/WXLYfx3+3oDWpIlrWMg3/9iCJ5IVcxqWZa1qahc9btbPXBnttJt9vJg/LjZbyjoNHDgPP6j3RSPxdN9h6Bqm+kQCnxG/WAeZMzNjvti5KueKCkARPSH21XA60o4EmliBXfrvRivP4uq+ELiYrkzaIbge1OZlM6nnyKd0Diap9+ZYD/jEjtjJWFI9Fxbkub9BSZZrZvqmG93oNZ3AYV5cOSgpskNk2fEuG91HDQk8mbsO8r2fN/WgjhfTEAQjKKWdt1jpFF08+UBcCgqYrnHZXyK/bI4XPJEIardzyvPvl6yJcIXQ0H/53RwUfdTQ3FKJo20lM+xGQe+kkimv1AAqa33fe+mLhP0OYFCjGesF7XlQNdQjn+TCeIMvrbQCN6OMyMcrz1LAo//Zk6fMF1XOvn9M3Qd0kLGyphw1bJrdnCz6cZm/SYcwZBjlCzwfIeh54=
   file:
-    - journalbeat-${DISTRO}
+  - journalbeat-${DISTRO}
   on:
+    repo: mheese/journalbeat
     branch: master
     tags: true
