@@ -47,16 +47,17 @@ func MapStrFromJournalEntry(ev sdjournal.JournalEntry, cleanKeys bool, convertTo
 
 	// ensure the "@timestamp" field
 	timestampFromJournalEntry := func() time.Time {
-		srt, ok := old["_SOURCE_REALTIME_TIMESTAMP"].(int64)
-		if ok {
-			// srt is in microseconds epoch
-			return time.Unix(0, srt*1000)
+		if srts, errs := old["_SOURCE_REALTIME_TIMESTAMP"].(string); errs {
+			srt, sok := strconv.ParseInt(srts, 0, 64)
+			if sok == nil {
+				// srt is in microseconds epoch
+				return time.Unix(0, srt*1000)
+			}
 		}
 
-		rt, ok := old["__REALTIME_TIMESTAMP"].(int64)
-		if ok {
+		if rt, errrt := old["__REALTIME_TIMESTAMP"].(uint64); errrt {
 			// rt is in microseconds epoch
-			return time.Unix(0, rt*1000)
+			return time.Unix(0, int64(rt)*1000)
 		}
 
 		// nothing worked ... get the last resort
