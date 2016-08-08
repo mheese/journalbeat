@@ -328,6 +328,10 @@ func (b *Broker) send(rb protocolBody, promiseResponse bool) (*responsePromise, 
 		return nil, ErrNotConnected
 	}
 
+	if !b.conf.Version.IsAtLeast(rb.requiredVersion()) {
+		return nil, ErrUnsupportedVersion
+	}
+
 	req := &request{correlationID: b.correlationID, clientID: b.conf.ClientID, body: rb}
 	buf, err := encode(req)
 	if err != nil {
