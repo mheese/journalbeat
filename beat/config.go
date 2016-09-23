@@ -25,6 +25,7 @@ type JournalReaderConfig struct {
 	CleanFieldNames      *bool   `config:"clean_field_names"`
 	MoveMetadataLocation *string `config:"move_metadata_to_field"`
 	DefaultType          *string `config:"default_type"`
+	Unit                 *string `config:"unit"`
 }
 
 // ConfigSettings holds JournalConfig at the Input section of the config file
