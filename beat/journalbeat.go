@@ -50,7 +50,7 @@ type Journalbeat struct {
 	cleanFieldnames      bool
 	moveMetadataLocation string
 	defaultType          string
-	unit                 string
+	units                []string
 
 	jr   *sdjournal.JournalReader
 	done chan int
@@ -131,10 +131,10 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 		jb.defaultType = "journal"
 	}
 
-	if jb.JbConfig.Input.Unit != nil {
-		jb.unit = *jb.JbConfig.Input.Unit
+	if jb.JbConfig.Input.Units != nil {
+		jb.units = *jb.JbConfig.Input.Units
 	} else {
-		jb.unit = ""
+		jb.units = make([]string, 0)
 	}
 
 	if _, ok := SeekPositions[jb.seekPosition]; !ok {
@@ -194,15 +194,21 @@ func seekToHelper(position string, err error) error {
 }
 
 func (jb *Journalbeat) readerConfig() sdjournal.JournalReaderConfig {
-	if jb.unit != "" {
+	var numberOfUnits = len(jb.units)
+
+	if numberOfUnits != 0 {
+		journalMatchers := make([]sdjournal.Match, numberOfUnits)
+
+		for index, unit := range jb.units {
+			journalMatchers[index] = sdjournal.Match{
+				Field: sdjournal.SD_JOURNAL_FIELD_SYSTEMD_UNIT,
+				Value: unit,
+			}
+		}
+
 		return sdjournal.JournalReaderConfig{
 			Since: time.Duration(1),
-			Matches: []sdjournal.Match{
-				{
-					Field: sdjournal.SD_JOURNAL_FIELD_SYSTEMD_UNIT,
-					Value: jb.unit,
-				},
-			},
+			Matches: journalMatchers,
 		}
 	}
 

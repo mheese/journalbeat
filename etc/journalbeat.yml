@@ -18,8 +18,9 @@ input:
   convert_to_numbers: false
   move_metadata_to_field: journal
   #default_type: journal
-  # Specific unit to monitor
-  # unit: httpd.service
+
+  #Specific units to monitor
+  #units: ["httpd.service"]
 output:
   console:
     pretty: true
