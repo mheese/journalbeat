@@ -16,15 +16,16 @@ package beat
 
 // JournalReaderConfig provides the config settings for the journald reader
 type JournalReaderConfig struct {
-	WriteCursorState     *bool   `config:"write_cursor_state"`
-	CursorStateFile      *string `config:"cursor_state_file"`
-	FlushCursorSecs      *int    `config:"flush_cursor_secs"`
-	SeekPosition         *string `config:"seek_position"`
-	CursorSeekFallback   *string `config:"cursor_seek_fallback"`
-	ConvertToNumbers     *bool   `config:"convert_to_numbers"`
-	CleanFieldNames      *bool   `config:"clean_field_names"`
-	MoveMetadataLocation *string `config:"move_metadata_to_field"`
-	DefaultType          *string `config:"default_type"`
+	WriteCursorState     *bool             `config:"write_cursor_state"`
+	CursorStateFile      *string           `config:"cursor_state_file"`
+	FlushCursorSecs      *int              `config:"flush_cursor_secs"`
+	SeekPosition         *string           `config:"seek_position"`
+	CursorSeekFallback   *string           `config:"cursor_seek_fallback"`
+	ConvertToNumbers     *bool             `config:"convert_to_numbers"`
+	CleanFieldNames      *bool             `config:"clean_field_names"`
+	MoveMetadataLocation *string           `config:"move_metadata_to_field"`
+	DefaultType          *string           `config:"default_type"`
+	AddFields            map[string]string `config:"add_fields"`
 }
 
 // ConfigSettings holds JournalConfig at the Input section of the config file

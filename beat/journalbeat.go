@@ -21,6 +21,7 @@ import (
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/cfgfile"
+	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/publisher"
 	"github.com/mheese/go-systemd/sdjournal"
@@ -50,6 +51,7 @@ type Journalbeat struct {
 	cleanFieldnames      bool
 	moveMetadataLocation string
 	defaultType          string
+	addFields            common.MapStr
 
 	jr   *sdjournal.JournalReader
 	done chan int
@@ -128,6 +130,15 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 		jb.defaultType = *jb.JbConfig.Input.DefaultType
 	} else {
 		jb.defaultType = "journal"
+	}
+
+	if jb.JbConfig.Input.AddFields != nil {
+		jb.addFields = make(common.MapStr, len(jb.JbConfig.Input.AddFields))
+		for k, v := range jb.JbConfig.Input.AddFields {
+			jb.addFields[k] = &v
+		}
+	} else {
+		jb.addFields = make(common.MapStr, 0)
 	}
 
 	if _, ok := SeekPositions[jb.seekPosition]; !ok {
@@ -272,6 +283,7 @@ func Publish(beat *beat.Beat, jb *Journalbeat) {
 
 		// do some conversion, etc.
 		m := MapStrFromJournalEntry(ev, jb.cleanFieldnames, jb.convertToNumbers)
+		m.Update(jb.addFields)
 		if jb.moveMetadataLocation != "" {
 			m = MapStrMoveJournalMetadata(m, jb.moveMetadataLocation)
 		}
