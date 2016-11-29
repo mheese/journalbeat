@@ -135,7 +135,8 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 	if jb.JbConfig.Input.AddFields != nil {
 		jb.addFields = make(common.MapStr, len(jb.JbConfig.Input.AddFields))
 		for k, v := range jb.JbConfig.Input.AddFields {
-			jb.addFields[k] = &v
+			value := v
+			jb.addFields[k] = &value
 		}
 	} else {
 		jb.addFields = make(common.MapStr, 0)
