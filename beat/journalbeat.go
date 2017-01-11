@@ -50,6 +50,7 @@ type Journalbeat struct {
 	cleanFieldnames      bool
 	moveMetadataLocation string
 	defaultType          string
+	units                []string
 
 	jr   *sdjournal.JournalReader
 	done chan int
@@ -130,6 +131,12 @@ func (jb *Journalbeat) Config(b *beat.Beat) error {
 		jb.defaultType = "journal"
 	}
 
+	if jb.JbConfig.Input.Units != nil {
+		jb.units = *jb.JbConfig.Input.Units
+	} else {
+		jb.units = make([]string, 0)
+	}
+
 	if _, ok := SeekPositions[jb.seekPosition]; !ok {
 		errMsg := "seek_position must be either cursor, head, or tail"
 		logp.Err(errMsg)
@@ -186,9 +193,36 @@ func seekToHelper(position string, err error) error {
 	return err
 }
 
+func (jb *Journalbeat) readerConfig() sdjournal.JournalReaderConfig {
+	var numberOfUnits = len(jb.units)
+
+	if numberOfUnits != 0 {
+		journalMatchers := make([]sdjournal.Match, numberOfUnits)
+
+		for index, unit := range jb.units {
+			journalMatchers[index] = sdjournal.Match{
+				Field: sdjournal.SD_JOURNAL_FIELD_SYSTEMD_UNIT,
+				Value: unit,
+			}
+		}
+
+		return sdjournal.JournalReaderConfig{
+			Since: time.Duration(1),
+			Matches: journalMatchers,
+		}
+	}
+
+	return sdjournal.JournalReaderConfig{
+		Since: time.Duration(1),
+	}
+}
+
 // Setup prepares Journalbeat for the main loop (starts journalreader, etc.)
 func (jb *Journalbeat) Setup(b *beat.Beat) error {
 	logp.Info("Journalbeat Setup")
+
+	var readerConfig = jb.readerConfig()
+
 	jb.output = b.Publisher.Connect()
 	// Buffer channel else write to it blocks when Stop is called while
 	// FollowJournal waits to write next  event
@@ -197,10 +231,7 @@ func (jb *Journalbeat) Setup(b *beat.Beat) error {
 	jb.cursorChan = make(chan string)
 	jb.cursorChanFlush = make(chan int)
 
-	jr, err := sdjournal.NewJournalReader(sdjournal.JournalReaderConfig{
-		Since: time.Duration(1),
-		//          NumFromTail: 0,
-	})
+	jr, err := sdjournal.NewJournalReader(readerConfig)
 	if err != nil {
 		logp.Err("Could not create JournalReader")
 		return err
