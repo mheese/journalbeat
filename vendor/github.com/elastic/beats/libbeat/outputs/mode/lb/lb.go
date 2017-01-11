@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/common/op"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/outputs"
@@ -29,7 +28,7 @@ import (
 // If a connection becomes unavailable, the events are rescheduled for another
 // connection to pick up. Rescheduling events is limited to a maximum number of
 // send attempts. If events have not been send after maximum number of allowed
-// attemps has been passed, they will be dropped.
+// attempts has been passed, they will be dropped.
 //
 // Like network connections, distributing events to workers is subject to
 // timeout. If no worker is available to pickup a message for sending, the message
@@ -122,12 +121,12 @@ func (m *LB) start(makeWorkers WorkerFactory) error {
 func (m *LB) PublishEvent(
 	signaler op.Signaler,
 	opts outputs.Options,
-	event common.MapStr,
+	data outputs.Data,
 ) error {
 	return m.publishEventsMessage(opts, eventsMessage{
 		worker:   -1,
 		signaler: signaler,
-		event:    event,
+		datum:    data,
 	})
 }
 
@@ -135,12 +134,12 @@ func (m *LB) PublishEvent(
 func (m *LB) PublishEvents(
 	signaler op.Signaler,
 	opts outputs.Options,
-	events []common.MapStr,
+	data []outputs.Data,
 ) error {
 	return m.publishEventsMessage(opts, eventsMessage{
 		worker:   -1,
 		signaler: signaler,
-		events:   events,
+		data:     data,
 	})
 }
 

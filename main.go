@@ -1,4 +1,4 @@
-// Copyright 2016 Marcus Heese
+// Copyright 2017 Marcus Heese
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,15 @@
 package main
 
 import (
+	"log"
+
 	"github.com/elastic/beats/libbeat/beat"
-	journalbeat "github.com/mheese/journalbeat/beat"
+	"github.com/mheese/journalbeat/beater"
 )
 
-// Name is the name of the beat
-const Name = "journalbeat"
-const Version = "0.1.0"
-
 func main() {
-	beat.Run(Name, Version, journalbeat.New())
+	err := beat.Run("journalbeat", "", beater.New)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

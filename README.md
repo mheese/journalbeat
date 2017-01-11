@@ -45,10 +45,6 @@ be revised (of course).
 
 A few current caveats with journalbeat
 
-### go-systemd
-
-Journalbeat currently uses a forked version of [go-systemd](https://github.com/coreos/go-systemd). All changes should be merged back upstream to the repo of CoreOS, and I will work on pull requests soon.
-
 ### cgo
 
 The underlying system library [go-systemd](https://github.com/coreos/go-systemd) makes heavy usage of cgo and the final binary will be linked against all client libraries that are needed in order to interact with sd-journal. That means that
