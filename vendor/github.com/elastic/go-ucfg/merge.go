@@ -7,9 +7,50 @@ import (
 	"time"
 )
 
+// Merge a map, a slice, a struct or another Config object into c.
+//
+// Merge traverses the value from recursively copying all values into a hierarchy
+// of Config objects plus primitives into c.
+//
+// Merge supports the options: PathSep, MetaData, StructTag, VarExp
+//
+// Merge uses the type-dependent default encodings:
+//  - Boolean values are encoded as booleans.
+//  - Integer are encoded as int64 values, unsigned integer values as uint64 and
+//    floats as float64 values.
+//  - Strings are copied into string values.
+//    If the VarExp is set, string fields will be parsed into
+//    variable expansion expressions. The expression can reference any
+//    other setting by absolute name.
+//  - Array and slices are copied into new Config objects with index accessors only.
+//  - Struct values and maps with key type string are encoded as Config objects with
+//    named field accessors.
+//  - Config objects will be copied and added to the current hierarchy.
+//
+// The `config` struct tag (configurable via StructTag option) can be used to
+// set the field name and enable additional merging settings per field:
+//
+//  // field appears in Config as key "myName"
+//  Field int `config:"myName"`
+//
+//  // field appears in sub-Config "mySub" as key "myName" (requires PathSep("."))
+//  Field int `config:"mySub.myName"`
+//
+//  // field is processed as if keys are part of outer struct (type can be a
+//  // struct, a slice, an array, a map or of type *Config)
+//  Field map[string]interface{} `config:",inline"`
+//
+//
+// Returns an error if merging fails to normalize and validate the from value.
+// If duplicate setting names are detected in the input, merging fails as well.
+//
+// Config cannot represent cyclic structures and Merge does not handle them
+// well. Passing cyclic structures to Merge will result in an infinite recursive
+// loop.
 func (c *Config) Merge(from interface{}, options ...Option) error {
 	opts := makeOptions(options)
 	other, err := normalize(opts, from)
+
 	if err != nil {
 		return err
 	}
@@ -17,6 +58,13 @@ func (c *Config) Merge(from interface{}, options ...Option) error {
 }
 
 func mergeConfig(opts *options, to, from *Config) Error {
+	if err := mergeConfigDict(opts, to, from); err != nil {
+		return err
+	}
+	return mergeConfigArr(opts, to, from)
+}
+
+func mergeConfigDict(opts *options, to, from *Config) Error {
 	for k, v := range from.fields.dict() {
 		ctx := context{
 			parent: cfgSub{to},
@@ -48,6 +96,56 @@ func mergeConfig(opts *options, to, from *Config) Error {
 	return nil
 }
 
+func mergeConfigArr(opts *options, to, from *Config) Error {
+	l := len(to.fields.array())
+	if l > len(from.fields.array()) {
+		l = len(from.fields.array())
+	}
+
+	// merge array indexes available in to and from
+	for i := 0; i < l; i++ {
+		ctx := context{
+			parent: cfgSub{to},
+			field:  fmt.Sprintf("%v", i),
+		}
+
+		v := from.fields.array()[i]
+
+		old := to.fields.array()[i]
+		subOld, err := old.toConfig(opts)
+		if err != nil {
+			to.fields.setAt(i, cfgSub{to}, v.cpy(ctx))
+			continue
+		}
+
+		subFrom, err := v.toConfig(opts)
+		if err != nil {
+			to.fields.setAt(i, cfgSub{to}, v.cpy(ctx))
+		}
+
+		if err := mergeConfig(opts, subOld, subFrom); err != nil {
+			return err
+		}
+	}
+
+	end := len(from.fields.array())
+	if end <= l {
+		return nil
+	}
+
+	// add additional array entries not yet in 'to'
+	for ; l < end; l++ {
+		ctx := context{
+			parent: cfgSub{to},
+			field:  fmt.Sprintf("%v", l),
+		}
+		v := from.fields.array()[l]
+		to.fields.setAt(l, cfgSub{to}, v.cpy(ctx))
+	}
+
+	return nil
+}
+
 // convert from into normalized *Config checking for errors
 // before merging generated(normalized) config with current config
 func normalize(opts *options, from interface{}) (*Config, Error) {
@@ -70,6 +168,13 @@ func normalize(opts *options, from interface{}) (*Config, Error) {
 			return normalizeStruct(opts, vFrom)
 		case reflect.Map:
 			return normalizeMap(opts, vFrom)
+		case reflect.Array, reflect.Slice:
+			tmp, err := normalizeArray(opts, tagOptions{}, context{}, vFrom)
+			if err != nil {
+				return nil, err
+			}
+			c, _ := tmp.toConfig(opts)
+			return c, nil
 		}
 
 	}
@@ -166,14 +271,19 @@ func normalizeSetField(
 		}
 		old = nil
 	}
-	if old != nil {
-		if _, isNil := val.(*cfgNil); val == nil || isNil {
-			return nil
-		}
+
+	switch {
+	case !isNil(old) && isNil(val):
+		return nil
+	case isNil(old):
+		return p.SetValue(cfg, opts, val)
+	case isSub(old) && isSub(val):
+		cfgOld, _ := old.toConfig(opts)
+		cfgVal, _ := val.toConfig(opts)
+		return mergeConfig(opts, cfgOld, cfgVal)
+	default:
 		return raiseDuplicateKey(cfg, name)
 	}
-
-	return p.SetValue(cfg, opts, val)
 }
 
 func normalizeStructValue(opts *options, ctx context, from reflect.Value) (value, Error) {

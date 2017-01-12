@@ -123,32 +123,11 @@ func isUint(k reflect.Kind) bool {
 	}
 }
 
-func implementsUnpacker(v reflect.Value) (reflect.Value, bool) {
-	for {
-		if v.Type().Implements(tUnpacker) {
-			return v, true
-		}
-
-		if !v.CanAddr() {
-			break
-		}
-		v = v.Addr()
+func isFloat(k reflect.Kind) bool {
+	switch k {
+	case reflect.Float32, reflect.Float64:
+		return true
+	default:
+		return false
 	}
-	return reflect.Value{}, false
-}
-
-func typeIsUnpacker(t reflect.Type) (reflect.Value, bool) {
-	if t.Implements(tUnpacker) {
-		return reflect.New(t).Elem(), true
-	}
-
-	if reflect.PtrTo(t).Implements(tUnpacker) {
-		return reflect.New(t), true
-	}
-
-	return reflect.Value{}, false
-}
-
-func unpackWith(v reflect.Value, with interface{}) error {
-	return v.Interface().(Unpacker).Unpack(with)
 }
