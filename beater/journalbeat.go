@@ -19,13 +19,13 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/coreos/go-systemd/sdjournal"
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/publisher"
 	"github.com/mheese/journalbeat/config"
 	"github.com/mheese/journalbeat/journal"
-	"github.com/nicorevin/go-systemd/sdjournal"
 )
 
 // Journalbeat is the main Journalbeat struct

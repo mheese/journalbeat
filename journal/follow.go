@@ -18,8 +18,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/coreos/go-systemd/sdjournal"
 	"github.com/elastic/beats/libbeat/logp"
-	"github.com/nicorevin/go-systemd/sdjournal"
 )
 
 // SD_JOURNAL_FIELD_CATALOG_ENTRY stores the name of the JournalEntry field to export Catalog entry to.

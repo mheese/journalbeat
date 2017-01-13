@@ -9,6 +9,12 @@
 			"revisionTime": "2016-12-15T15:18:51Z"
 		},
 		{
+			"checksumSHA1": "u7jr6ys5VV/ywoauQ3YQZJs1yO8=",
+			"path": "github.com/coreos/go-systemd/sdjournal",
+			"revision": "7f737a6bd38784c73b5bf5cd54d9b1d23295e3a0",
+			"revisionTime": "2017-01-13T10:31:45Z"
+		},
+		{
 			"checksumSHA1": "O8c/VKtW34XPJNNlyeb/im8vWSI=",
 			"path": "github.com/coreos/pkg/dlopen",
 			"revision": "447b7ec906e523386d9c53be15b55a8ae86ea944",
@@ -379,12 +385,6 @@
 			"path": "github.com/klauspost/crc32",
 			"revision": "cb6bfca970f6908083f26f39a79009d608efd5cd",
 			"revisionTime": "2016-10-16T15:41:25Z"
-		},
-		{
-			"checksumSHA1": "xojkgrlzL3jnLk0rF31cvhtm8DE=",
-			"path": "github.com/nicorevin/go-systemd/sdjournal",
-			"revision": "2f8dc22e46890b270c00006fdb6cc033f4db2c4f",
-			"revisionTime": "2017-01-09T22:39:12Z"
 		},
 		{
 			"checksumSHA1": "FlEI/BO8wk8bZR0Gz7OfwSaNZ0s=",

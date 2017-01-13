@@ -18,8 +18,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/coreos/go-systemd/sdjournal"
 	"github.com/elastic/beats/libbeat/common"
-	"github.com/nicorevin/go-systemd/sdjournal"
 )
 
 // MapStrFromJournalEntry takes a JournalD entry and converts it to an event
