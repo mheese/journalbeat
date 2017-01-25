@@ -13,5 +13,5 @@ RUN curl -sLo /go/gimme https://raw.githubusercontent.com/travis-ci/gimme/master
 WORKDIR /go/src/github.com/mheese/journalbeat
 CMD . ${GIMME_ENV_PREFIX}/go${GOLANG_VERSION}.env \
   && go test . ./beater \
-  && go build . \
+  && go build -ldflags '-s -w' . \
   && chmod 0666 journalbeat
