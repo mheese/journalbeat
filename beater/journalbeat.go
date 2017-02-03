@@ -174,7 +174,7 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 		event["input_type"] = jb.config.DefaultType
 		event["@timestamp"] = common.Time(time.Unix(0, int64(rawEvent.RealtimeTimestamp)*1000))
 
-		jb.client.PublishEvent(event, publisher.Sync, publisher.Guaranteed)
+		jb.client.PublishEvent(event, publisher.Guaranteed)
 		// save cursor
 		if jb.config.WriteCursorState {
 			jb.cursorChan <- rawEvent.Cursor
