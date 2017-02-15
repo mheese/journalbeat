@@ -19,6 +19,19 @@ journalbeat:
   # How frequently should we save the cursor to disk (defaults to 5s)
   #cursor_flush_period: 5s
 
+  # Path to the file to store the queue of events pending (defaults to ".journalbeat-pending-queue")
+  #pending_queue.file: .journalbeat-pending-queue
+
+  # How frequently should we save the queue to disk (defaults to 1s).
+  # Pending queue represents the WAL of events queued to be published
+  # or being published and waiting for acknowledgement. In case of a
+  # regular restart of journalbeat all the events not yet acknowledged
+  # will be flushed to disk during the shutdown.
+  # In case of disaster most probably journalbeat won't get a chance to shutdown
+  # itself gracefully and this flush period option will serve you as a
+  # backup creation frequency option.
+  #pending_queue.flush_period: 1s
+
   # Lowercase and remove leading underscores, e.g. "_MESSAGE" -> "message"
   # (default to false)
   #clean_field_names: true
