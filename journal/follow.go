@@ -45,11 +45,11 @@ func Follow(journal *sdjournal.Journal, stop <-chan struct{}) <-chan *sdjournal.
 		return entry, nil
 	}
 
-	//make buffer size a parameter in journalbeat.Config...
-	out := make(chan *sdjournal.JournalEntry, 100)
+	out := make(chan *sdjournal.JournalEntry)
 
 	go func(journal *sdjournal.Journal, stop <-chan struct{}, out chan<- *sdjournal.JournalEntry) {
 		defer close(out)
+		eventWaitCh := make(chan int)
 
 	process:
 		for {
@@ -57,50 +57,47 @@ func Follow(journal *sdjournal.Journal, stop <-chan struct{}) <-chan *sdjournal.
 			case <-stop:
 				return
 			default:
-				entry, err := readEntry(journal)
-				if err != nil && err != io.EOF {
-					logp.Err("Received unknown error when reading a new entry: %v", err)
-					return
-				}
-				if entry != nil {
-					if _, ok := entry.Fields[sdjournal.SD_JOURNAL_FIELD_MESSAGE_ID]; ok {
-						if catalogEntry, err := journal.GetCatalog(); err == nil {
-							entry.Fields[SD_JOURNAL_FIELD_CATALOG_ENTRY] = catalogEntry
-						}
-					}
-					out <- entry
-					continue process
-				}
 			}
+
+			entry, err := readEntry(journal)
+			if err != nil && err != io.EOF {
+				logp.Err("Received unknown error when reading a new entry: %v", err)
+				return
+			}
+			if entry != nil {
+				if _, ok := entry.Fields[sdjournal.SD_JOURNAL_FIELD_MESSAGE_ID]; ok {
+					if catalogEntry, err := journal.GetCatalog(); err == nil {
+						entry.Fields[SD_JOURNAL_FIELD_CATALOG_ENTRY] = catalogEntry
+					}
+				}
+				out <- entry
+				continue process
+			}
+
 			// We're at the tail, so wait for new events or time out.
 			// Holds journal events to process. Tightly bounded for now unless there's a
 			// reason to unblock the journal watch routine more quickly.
-			events := make(chan int, 1)
-			pollDone := make(chan bool, 1)
-			go func() {
-				for {
+			for {
+				go func() {
 					select {
-					case <-pollDone:
-						return
+					case <-stop:
+					case eventWaitCh <- journal.Wait(100 * time.Millisecond):
+					}
+				}()
+
+				select {
+				case <-stop:
+					return
+				case e := <-eventWaitCh:
+					switch e {
+					case sdjournal.SD_JOURNAL_NOP:
+						// the journal did not change since the last invocation
+					case sdjournal.SD_JOURNAL_APPEND, sdjournal.SD_JOURNAL_INVALIDATE:
+						continue process
 					default:
-						events <- journal.Wait(time.Duration(100) * time.Millisecond)
+						logp.Err("Received unknown event: %d", e)
 					}
 				}
-			}()
-
-			select {
-			case <-stop:
-				pollDone <- true
-				return
-			case e := <-events:
-				pollDone <- true
-				switch e {
-				case sdjournal.SD_JOURNAL_NOP, sdjournal.SD_JOURNAL_APPEND, sdjournal.SD_JOURNAL_INVALIDATE:
-					// TODO: need to account for any of these?
-				default:
-					logp.Err("Received unknown event: %d", e)
-				}
-				continue process
 			}
 		}
 	}(journal, stop, out)
