@@ -25,16 +25,22 @@ import (
 
 // Config provides the config settings for the journald reader
 type Config struct {
-	SeekPosition         string        `config:"seek_position"`
-	ConvertToNumbers     bool          `config:"convert_to_numbers"`
-	CleanFieldNames      bool          `config:"clean_field_names"`
-	WriteCursorState     bool          `config:"write_cursor_state"`
-	CursorStateFile      string        `config:"cursor_state_file"`
-	CursorFlushPeriod    time.Duration `config:"cursor_flush_period"`
-	CursorSeekFallback   string        `config:"cursor_seek_fallback"`
-	MoveMetadataLocation string        `config:"move_metadata_to_field"`
-	DefaultType          string        `config:"default_type"`
-	Units                []string      `config:"units"`
+	SeekPosition         string             `config:"seek_position"`
+	ConvertToNumbers     bool               `config:"convert_to_numbers"`
+	CleanFieldNames      bool               `config:"clean_field_names"`
+	WriteCursorState     bool               `config:"write_cursor_state"`
+	CursorStateFile      string             `config:"cursor_state_file"`
+	CursorFlushPeriod    time.Duration      `config:"cursor_flush_period" validate:"min=0"`
+	PendingQueue         pendingQueueConfig `config:"pending_queue"`
+	CursorSeekFallback   string             `config:"cursor_seek_fallback"`
+	MoveMetadataLocation string             `config:"move_metadata_to_field"`
+	DefaultType          string             `config:"default_type"`
+	Units                []string           `config:"units"`
+}
+
+type pendingQueueConfig struct {
+	File        string        `config:"file"`
+	FlushPeriod time.Duration `config:"flush_period" validate:"min=0"`
 }
 
 // Named constants for the journal cursor placement positions
@@ -64,7 +70,11 @@ var (
 		CursorStateFile:    ".journalbeat-cursor-state",
 		CursorFlushPeriod:  5 * time.Second,
 		CursorSeekFallback: SeekPositionTail,
-		DefaultType:        "journal",
+		PendingQueue: pendingQueueConfig{
+			File:        ".journalbeat-pending-queue",
+			FlushPeriod: 1 * time.Second,
+		},
+		DefaultType: "journal",
 	}
 )
 

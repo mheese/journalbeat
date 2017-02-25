@@ -17,6 +17,7 @@ package beater
 import (
 	"fmt"
 	"io/ioutil"
+	"sync"
 	"time"
 
 	"github.com/coreos/go-systemd/sdjournal"
@@ -36,7 +37,9 @@ type Journalbeat struct {
 
 	journal *sdjournal.Journal
 
-	cursorChan chan string
+	cursorChan         chan string
+	pending, completed chan *eventReference
+	wg                 sync.WaitGroup
 }
 
 func (jb *Journalbeat) initJournal() error {
@@ -97,33 +100,6 @@ func (jb *Journalbeat) initJournal() error {
 	return nil
 }
 
-// WriteCursorLoop runs the loop which flushes the current cursor position to a file
-func (jb *Journalbeat) writeCursorLoop() {
-	var cursor string
-	saveCursorState := func(cursor string) {
-		if cursor != "" {
-			if err := ioutil.WriteFile(jb.config.CursorStateFile, []byte(cursor), 0644); err != nil {
-				logp.Err("Could not write to cursor state file: %v", err)
-			}
-		}
-	}
-
-	// save cursor for the last time when stop signal caught
-	// Saving the cursor through defer guarantees that the jb.cursorChan has been fully consumed
-	// and we are writing the cursor of the last message published.
-	defer func() { saveCursorState(cursor) }()
-
-	tick := time.Tick(jb.config.CursorFlushPeriod)
-
-	for cursor = range jb.cursorChan {
-		select {
-		case <-tick:
-			saveCursorState(cursor)
-		default:
-		}
-	}
-}
-
 // New creates beater
 func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	config := config.DefaultConfig
@@ -133,9 +109,11 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	}
 
 	jb := &Journalbeat{
-		done:       make(chan struct{}),
 		config:     config,
+		done:       make(chan struct{}),
 		cursorChan: make(chan string),
+		pending:    make(chan *eventReference),
+		completed:  make(chan *eventReference),
 	}
 
 	if err = jb.initJournal(); err != nil {
@@ -150,16 +128,21 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 func (jb *Journalbeat) Run(b *beat.Beat) error {
 	logp.Info("Journalbeat is running!")
 	defer func() {
-		close(jb.cursorChan)
 		jb.client.Close()
 		jb.journal.Close()
+		close(jb.cursorChan)
+		close(jb.pending)
+		close(jb.completed)
+		jb.wg.Wait()
 	}()
+
+	jb.client = b.Publisher.Connect()
+
+	go jb.managePendingQueueLoop()
 
 	if jb.config.WriteCursorState {
 		go jb.writeCursorLoop()
 	}
-
-	jb.client = b.Publisher.Connect()
 
 	for rawEvent := range journal.Follow(jb.journal, jb.done) {
 		//convert sdjournal.JournalEntry to common.MapStr
@@ -174,10 +157,14 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 		event["input_type"] = jb.config.DefaultType
 		event["@timestamp"] = common.Time(time.Unix(0, int64(rawEvent.RealtimeTimestamp)*1000))
 
-		jb.client.PublishEvent(event, publisher.Sync, publisher.Guaranteed)
-		// save cursor
-		if jb.config.WriteCursorState {
-			jb.cursorChan <- rawEvent.Cursor
+		ref := &eventReference{rawEvent.Cursor, event}
+		if jb.client.PublishEvent(event, publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed) {
+			jb.pending <- ref
+
+			// save cursor
+			if jb.config.WriteCursorState {
+				jb.cursorChan <- rawEvent.Cursor
+			}
 		}
 	}
 	return nil
