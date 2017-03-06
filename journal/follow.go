@@ -53,12 +53,6 @@ func Follow(journal *sdjournal.Journal, stop <-chan struct{}) <-chan *sdjournal.
 
 	process:
 		for {
-			select {
-			case <-stop:
-				return
-			default:
-			}
-
 			entry, err := readEntry(journal)
 			if err != nil && err != io.EOF {
 				logp.Err("Received unknown error when reading a new entry: %v", err)
@@ -70,8 +64,13 @@ func Follow(journal *sdjournal.Journal, stop <-chan struct{}) <-chan *sdjournal.
 						entry.Fields[SD_JOURNAL_FIELD_CATALOG_ENTRY] = catalogEntry
 					}
 				}
-				out <- entry
-				continue process
+				// non-blocking return
+				select {
+				case <-stop:
+					return
+				case out <- entry:
+					continue process
+				}
 			}
 
 			// We're at the tail, so wait for new events or time out.
