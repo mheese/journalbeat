@@ -1,0 +1,8 @@
+FROM debian:jessie
+MAINTAINER mbrooks
+
+RUN mkdir -p /data
+WORKDIR /
+COPY journalbeat journalbeat.yml ./
+
+CMD ["./journalbeat", "-e", "-c", "journalbeat.yml"]
