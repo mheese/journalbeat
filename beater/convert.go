@@ -29,7 +29,8 @@ import (
 // - remove underscores from the beginning of fields as they are reserved in
 //   ElasticSearch for metadata information
 // - fields that can be converted to numbers, will be converted to numbers
-func MapStrFromJournalEntry(ev *sdjournal.JournalEntry, cleanKeys bool, convertToNumbers bool, MoveMetadataLocation string) common.MapStr {
+func MapStrFromJournalEntry(ev *sdjournal.JournalEntry, cleanKeys bool, convertToNumbers bool,
+				MoveMetadataLocation string, whitelistedFields []string) common.MapStr {
 	m := common.MapStr{}
 	// for the sake of MoveMetadataLocation we will write all the JournalEntry data except the "message" here
 	target := m
@@ -44,15 +45,17 @@ func MapStrFromJournalEntry(ev *sdjournal.JournalEntry, cleanKeys bool, convertT
 	}
 
 	// range over the JournalEntry Fields and convert to the common.MapStr
-	for k, v := range ev.Fields {
+	for k := range whitelistedFields {
 		nk := makeNewKey(k, cleanKeys)
-		nv := makeNewValue(v, convertToNumbers)
-		// message Field should be on the top level of the event
-		if nk == "message" {
-			m[nk] = nv
-			continue
+		if v, ok := ev.Fields[k]; ok {
+			nv := makeNewValue(v, convertToNumbers)
+			// message Field should be on the top level of the event
+			if nk == "message" {
+				m[nk] = nv
+				continue
+			}
+			target[nk] = nv
 		}
-		target[nk] = nv
 	}
 
 	return m

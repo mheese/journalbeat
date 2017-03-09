@@ -35,6 +35,7 @@ type Config struct {
 	MoveMetadataLocation string        `config:"move_metadata_to_field"`
 	DefaultType          string        `config:"default_type"`
 	Units                []string      `config:"units"`
+	FlushLogInterval     time.Duration `config:"flush_log_interval"`
 }
 
 // Named constants for the journal cursor placement positions
@@ -65,6 +66,7 @@ var (
 		CursorFlushPeriod:  5 * time.Second,
 		CursorSeekFallback: SeekPositionTail,
 		DefaultType:        "journal",
+		FlushLogInterval:   30 * time.Second,
 	}
 )
 
