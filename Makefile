@@ -8,7 +8,7 @@
 # Note: This Makefile can be modified to include any future non-docker build
 # tasks as well.
 
-IMAGE_NAME := journalbeat
+IMAGE_NAME := mheese/journalbeat
 GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD | sed "sX/X-Xg")
 GIT_TAG_NAME := $(shell git describe --tags)
 
@@ -66,7 +66,7 @@ build/journalbeat.yml:
 # docker tag the image
 #
 docker-tag: docker-build
-	@echo $(TAGS) | xargs -n 1 docker tag $(IMAGE_NAME)
+	echo $(TAGS) | xargs -n 1 docker tag $(IMAGE_NAME)
 .PHONY: docker-tag
 
 #
@@ -75,6 +75,13 @@ docker-tag: docker-build
 docker-build: build build/Dockerfile build/journalbeat.yml
 	cd build && docker build -t $(IMAGE_NAME) .
 .PHONY: docker-build
+
+#
+# docker push all tags
+#
+docker-push: docker-tag
+	echo $(TAGS) | xargs -n 1 docker push
+.PHONY: docker-push
 
 #
 #  show the current version and branch name, for quick reference.
