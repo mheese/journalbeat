@@ -3,7 +3,7 @@
 # This Makefile contains a collection of targets to help with docker image
 # maintenance and creation. Run `make docker-build` to build the docker
 # image. Run `make docker-tag` to build the image and tag the docker image
-# with the current git tag.
+# with the current git tag. Run `make docker-push` to push all tags to docker hub.
 #
 # Note: This Makefile can be modified to include any future non-docker build
 # tasks as well.
