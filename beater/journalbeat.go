@@ -29,29 +29,33 @@ import (
 )
 
 type LogBuffer struct {
-	time int64
+	time     int64
 	logEvent *common.MapStr
-	logType string
+	logType  string
 }
 
 //These are the fields for the container logs.
-const containerTagField string = "CONTAINER_TAG"
-const containerIdField string = "CONTAINER_ID"
-const containerTimestampField string = "_SOURCE_REALTIME_TIMESTAMP"
+const (
+	containerTagField       string = "CONTAINER_TAG"
+	containerIdField        string = "CONTAINER_ID"
+	containerTimestampField string = "_SOURCE_REALTIME_TIMESTAMP"
 
-//These are the fields for the host process logs.
-const tagField string = "SYSLOG_IDENTIFIER"
-const processField string = "_PID"
-const timestampField string = "@timestamp"
+	//These are the fields for the host process logs.
+	tagField       string = "SYSLOG_IDENTIFIER"
+	processField   string = "_PID"
+	timestampField string = "@timestamp"
 
-//Common fields for both container and host process logs.
-const hostNameField string = "_HOST_NAME"
-const messageField string = "MESSAGE"
+	//Common fields for both container and host process logs.
+	hostNameField string = "_HOST_NAME"
+	messageField  string = "MESSAGE"
+
+	channelSize int = 1000
+)
 
 type LogBuffer struct {
-	time time.Time
+	time     time.Time
 	logEvent common.MapStr
-	logType string
+	logType  string
 }
 
 //These are the fields for the container logs.
@@ -79,7 +83,7 @@ type Journalbeat struct {
 	cursorChan chan string
 
 	journalTypeOutstandingLogBuffer map[string]*LogBuffer
-	incomingLogMessages chan common.MapStr
+	incomingLogMessages             chan common.MapStr
 }
 
 func (jb *Journalbeat) initJournal() error {
@@ -176,11 +180,11 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	}
 
 	jb := &Journalbeat{
-		done:       make(chan struct{}),
-		config:     config,
-		cursorChan: make(chan string),
- 		incomingLogMessages: make(chan common.MapStr, 1000),
-		journalTypeOutstandingLogBuffer: make(map[string]*LogBuffer), 
+		done:                            make(chan struct{}),
+		config:                          config,
+		cursorChan:                      make(chan string),
+		incomingLogMessages:             make(chan common.MapStr, channelSize),
+		journalTypeOutstandingLogBuffer: make(map[string]*LogBuffer),
 	}
 
 	if err = jb.initJournal(); err != nil {
@@ -189,22 +193,6 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	}
 
 	return jb, nil
-}
-
-//TODO optimize this later but for now walkthru all the different types.
-	func (jb *Journalbeat) logProcessor() {
-	tickChan := time.NewTicker(time.Second * 30).C
-	for {
-		select {
-			case <- tickChan:
-				//here we need to walk thru all the map entries and flush out the ones
-				//which have been sitting there for some time.
-				jb.flushStaleLogMessages()
-
-			case channelEvent := <- jb.incomingLogMessages:
-				jb.flushOrBufferLogs(channelEvent)
-		}
-	}
 }
 
 func (jb *Journalbeat) flushStaleLogMessages() {
@@ -229,19 +217,19 @@ func (jb *Journalbeat) flushOrBufferLogs(event *common.MapStr) {
 			jb.journalTypeOutstandingLogBuffer[logType].logEvent["message"] += newLogMessage
 		} else {
 			jb.journalTypeOutstandingLogBuffer[logType] = LogBuffer{
-									time: time.Now(),
-									logType: event["logBufferingType"],
-									logEvent: event,
-									}
+				time:     time.Now(),
+				logType:  event["logBufferingType"],
+				logEvent: event,
+			}
 		}
 		jb.journalTypeOutstandingLogBuffer[logType].time = time.Now()
 	} else {
 		oldLogBuffer, found := jb.journalTypeOutstandingLogBuffer[logType]
 		jb.journalTypeOutstandingLogBuffer[logType] = LogBuffer{
-									time: time.Now(),
-									logType: event["logBufferingType"],
-									logEvent: event,
-								}
+			time:     time.Now(),
+			logType:  event["logBufferingType"],
+			logEvent: event,
+		}
 		if found {
 			//flush the older logs to async.
 			jb.client.PublishEvent(oldLogBuffer.logEvent, publisher.Guaranteed)
@@ -250,18 +238,18 @@ func (jb *Journalbeat) flushOrBufferLogs(event *common.MapStr) {
 }
 
 //TODO optimize this later but for now walkthru all the different types. Use priority queue/multiple threads if needed.
-	func (jb *Journalbeat) logProcessor() {
+func (jb *Journalbeat) logProcessor() {
 	logp.Info("Started the thread which consumes log messages and publishes it")
-	tickChan := time.NewTicker(jb.config.FlushLogInterval).C
+	tickChan := time.NewTicker(jb.config.FlushLogInterval)
 	for {
 		select {
-			case <- tickChan:
-				//here we need to walk thru all the map entries and flush out the ones
-				//which have been sitting there for some time.
-				jb.flushStaleLogMessages()
+		case <-tickChan.C:
+			//here we need to walk thru all the map entries and flush out the ones
+			//which have been sitting there for some time.
+			jb.flushStaleLogMessages()
 
-			case channelEvent := <- jb.incomingLogMessages:
-				jb.flushOrBufferLogs(channelEvent)
+		case channelEvent := <-jb.incomingLogMessages:
+			jb.flushOrBufferLogs(channelEvent)
 		}
 	}
 }
@@ -289,19 +277,19 @@ func (jb *Journalbeat) flushOrBufferLogs(event common.MapStr) {
 				oldLog.logEvent["message"].(string) + "\n" + newLogMessage
 		} else {
 			jb.journalTypeOutstandingLogBuffer[logType] = &LogBuffer{
-									time: time.Now(),
-									logType: event["logBufferingType"].(string),
-									logEvent: event,
-									}
+				time:     time.Now(),
+				logType:  event["logBufferingType"].(string),
+				logEvent: event,
+			}
 		}
 		jb.journalTypeOutstandingLogBuffer[logType].time = time.Now()
 	} else {
 		oldLogBuffer, found := jb.journalTypeOutstandingLogBuffer[logType]
 		jb.journalTypeOutstandingLogBuffer[logType] = &LogBuffer{
-									time: time.Now(),
-									logType: event["logBufferingType"].(string),
-									logEvent: event,
-								}
+			time:     time.Now(),
+			logType:  event["logBufferingType"].(string),
+			logEvent: event,
+		}
 		if found {
 			//flush the older logs to async.
 			jb.client.PublishEvent(oldLogBuffer.logEvent, publisher.Guaranteed)
@@ -322,14 +310,16 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 		go jb.writeCursorLoop()
 	}
 
-        go jb.logProcessor()
+	go jb.logProcessor()
 
 	jb.client = b.Publisher.Connect()
+
+	commonFields := []string{hostNameField, messageField}
 
 	for rawEvent := range journal.Follow(jb.journal, jb.done) {
 		event := common.MapStr{}
 		if _, ok := rawEvent.Fields[containerIdField]; ok {
-			selectedFields := []string{containerTimestampField, containerTagField, containerIdField, hostNameField, messageField}
+			selectedFields := append(commonFields, []string{containerTimestampField, containerTagField, containerIdField})
 			event = MapStrFromJournalEntry(
 				rawEvent,
 				jb.config.CleanFieldNames,
@@ -338,9 +328,9 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 				selectedFields)
 			event["type"] = "container"
 			event["@timestamp"] = rawEvent.Fields[containerTimestampField]
-			event["logBufferingType"] = rawEvent.Fields[containerTagField]
+			event["logBufferingType"] = rawEvent.Fields[containerIdField]
 		} else {
-			selectedFields := []string{tagField, processField, timestampField, hostNameField, messageField}
+			selectedFields := append(commonFields, []string{tagField, processField, timestampField})
 			event = MapStrFromJournalEntry(
 				rawEvent,
 				jb.config.CleanFieldNames,
@@ -348,7 +338,7 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 				jb.config.MoveMetadataLocation,
 				selectedFields)
 			event["type"] = rawEvent.Fields[tagField]
-			event["logBufferingType"] = rawEvent.Fields[tagField]
+			event["logBufferingType"] = rawEvent.Fields[processField]
 		}
 
 		event["input_type"] = jb.config.DefaultType

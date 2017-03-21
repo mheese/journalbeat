@@ -30,7 +30,7 @@ import (
 //   ElasticSearch for metadata information
 // - fields that can be converted to numbers, will be converted to numbers
 func MapStrFromJournalEntry(ev *sdjournal.JournalEntry, cleanKeys bool, convertToNumbers bool,
-				MoveMetadataLocation string, whitelistedFields []string) common.MapStr {
+	MoveMetadataLocation string, whitelistedFields []string) common.MapStr {
 	m := common.MapStr{}
 	// for the sake of MoveMetadataLocation we will write all the JournalEntry data except the "message" here
 	target := m
