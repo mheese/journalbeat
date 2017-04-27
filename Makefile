@@ -45,9 +45,9 @@ build: Dockerfile build/journalbeat
 build/journalbeat:
 	mkdir -p build
 	docker build -t $(IMAGE_NAME)-build .
-	docker run --name $(IMAGE_NAME)-build $(IMAGE_NAME)-build
-	-docker cp $(IMAGE_NAME)-build:/go/src/github.com/mheese/journalbeat/journalbeat build/journalbeat
-	docker rm $(IMAGE_NAME)-build
+	docker run --name journalbeat-build-container $(IMAGE_NAME)-build
+	-docker cp journalbeat-build-container:/go/src/github.com/mheese/journalbeat/journalbeat build/journalbeat
+	docker rm journalbeat-build-container
 	docker rmi $(IMAGE_NAME)-build
 
 #
