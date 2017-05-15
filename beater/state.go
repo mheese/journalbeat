@@ -70,13 +70,18 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 
 	// flush saves the map[string]common.MapStr to the JSON file on disk
 	flush := func(source map[string]common.MapStr, dest string) error {
-		file, err := os.Create(dest)
+		file, err := ioutil.TempFile("", "journalbeat-pending-queue")
 		if err != nil {
 			return err
 		}
-		defer file.Close()
 
-		return json.NewEncoder(file).Encode(source)
+		if err = json.NewEncoder(file).Encode(source); err != nil {
+			_ = file.Close()
+			return err
+		}
+
+		_ = file.Close()
+		return os.Rename(file.Name(), dest)
 	}
 
 	// load loads the map[string]common.MapStr from the JSON file on disk
@@ -152,8 +157,21 @@ func (jb *Journalbeat) writeCursorLoop() {
 	var cursor string
 	saveCursorState := func(cursor string) {
 		if cursor != "" {
-			if err := ioutil.WriteFile(jb.config.CursorStateFile, []byte(cursor), 0644); err != nil {
+			file, err := ioutil.TempFile("", "journalbeat-cursor")
+			if err != nil {
+				logp.Err("Could not create cursor state file: %v", err)
+				return
+			}
+
+			if _, err = file.WriteString(cursor); err != nil {
+				_ = file.Close()
 				logp.Err("Could not write to cursor state file: %v", err)
+				return
+			}
+			_ = file.Close()
+			if err := os.Rename(file.Name(), jb.config.CursorStateFile); err != nil {
+				logp.Err("Could not save cursor state file: %v", err)
+				return
 			}
 		}
 	}

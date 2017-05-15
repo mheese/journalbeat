@@ -128,7 +128,7 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 func (jb *Journalbeat) Run(b *beat.Beat) error {
 	logp.Info("Journalbeat is running!")
 	defer func() {
-		jb.journal.Close()
+		_ = jb.journal.Close()
 		close(jb.cursorChan)
 		close(jb.pending)
 		close(jb.completed)
@@ -173,5 +173,5 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 func (jb *Journalbeat) Stop() {
 	logp.Info("Stopping Journalbeat")
 	close(jb.done)
-	jb.client.Close()
+	_ = jb.client.Close()
 }
