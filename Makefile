@@ -9,6 +9,7 @@
 # tasks as well.
 
 IMAGE_NAME := mheese/journalbeat
+IMAGE_BUILD_NAME := mheese-journalbeat-build
 GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD | sed "sX/X-Xg")
 GIT_TAG_NAME := $(shell git describe --tags)
 
@@ -44,11 +45,11 @@ build: Dockerfile build/journalbeat
 #
 build/journalbeat:
 	mkdir -p build
-	docker build -t $(IMAGE_NAME)-build .
-	docker run --name journalbeat-build-container $(IMAGE_NAME)-build
-	-docker cp journalbeat-build-container:/go/src/github.com/mheese/journalbeat/journalbeat build/journalbeat
-	docker rm journalbeat-build-container
-	docker rmi $(IMAGE_NAME)-build
+	docker build -t $(IMAGE_BUILD_NAME) .
+	docker run --name $(IMAGE_BUILD_NAME) $(IMAGE_BUILD_NAME)
+	-docker cp $(IMAGE_BUILD_NAME):/go/src/github.com/mheese/journalbeat/journalbeat build/journalbeat
+	docker rm $(IMAGE_BUILD_NAME)
+	docker rmi $(IMAGE_BUILD_NAME)
 
 #
 # Copy the Dockerfile for release to the build directory
