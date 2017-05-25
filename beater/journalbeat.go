@@ -155,6 +155,8 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 		event["type"] = jb.config.DefaultType
 		event["input_type"] = jb.config.DefaultType
 		event["@timestamp"] = common.Time(time.Unix(0, int64(rawEvent.RealtimeTimestamp)*1000))
+		// add _REALTIME_TIMESTAMP until https://github.com/elastic/elasticsearch/issues/12829 is closed
+		event["@realtime_timestamp"] = int64(rawEvent.RealtimeTimestamp)
 
 		ref := &eventReference{rawEvent.Cursor, event}
 		if jb.client.PublishEvent(event, publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed) {
