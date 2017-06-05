@@ -53,11 +53,22 @@ func Follow(journal *sdjournal.Journal, stop <-chan struct{}) <-chan *sdjournal.
 
 	process:
 		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+
 			entry, err := readEntry(journal)
 			if err != nil && err != io.EOF {
-				logp.Err("Received unknown error when reading a new entry: %v", err)
-				return
+				if cursor, cerr := journal.GetCursor(); cerr != nil {
+					logp.Warn("Received unknown error when reading a new entry: %v, cursor read error: %v", err, cerr)
+				} else {
+					logp.Warn("Received unknown error when reading a new entry: %v, cursor: %s", err, cursor)
+				}
+				continue
 			}
+
 			if entry != nil {
 				if _, ok := entry.Fields[sdjournal.SD_JOURNAL_FIELD_MESSAGE_ID]; ok {
 					if catalogEntry, err := journal.GetCatalog(); err == nil {

@@ -19,6 +19,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"time"
 )
@@ -92,6 +93,16 @@ func (config *Config) Validate() error {
 
 	if _, ok := seekFallbackPositions[config.CursorSeekFallback]; !ok {
 		return fmt.Errorf("Invalid Cursor Seek Fallback Position: %v. Should be %s, %s or %s", config.SeekPosition, SeekPositionTail, SeekPositionHead, SeekPositionDefault)
+	}
+	if fp, err := filepath.Abs(config.PendingQueue.File); err != nil {
+		return fmt.Errorf("Invalid path %s: %v", config.PendingQueue.File, err)
+	} else {
+		config.PendingQueue.File = fp
+	}
+	if fp, err := filepath.Abs(config.CursorStateFile); err != nil {
+		return fmt.Errorf("Invalid path %s: %v", config.CursorStateFile, err)
+	} else {
+		config.CursorStateFile = fp
 	}
 	return nil
 }

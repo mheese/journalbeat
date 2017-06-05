@@ -16,8 +16,10 @@ package beater
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -70,18 +72,18 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 
 	// flush saves the map[string]common.MapStr to the JSON file on disk
 	flush := func(source map[string]common.MapStr, dest string) error {
-		file, err := ioutil.TempFile("", "journalbeat-pending-queue")
+		tempFile, err := ioutil.TempFile(filepath.Dir(dest), fmt.Sprintf(".%s", filepath.Base(dest)))
 		if err != nil {
 			return err
 		}
 
-		if err = json.NewEncoder(file).Encode(source); err != nil {
-			_ = file.Close()
+		if err = json.NewEncoder(tempFile).Encode(source); err != nil {
+			_ = tempFile.Close()
 			return err
 		}
 
-		_ = file.Close()
-		return os.Rename(file.Name(), dest)
+		_ = tempFile.Close()
+		return os.Rename(tempFile.Name(), dest)
 	}
 
 	// load loads the map[string]common.MapStr from the JSON file on disk
@@ -99,12 +101,14 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 	defer func() {
 		var wg sync.WaitGroup
 		wg.Add(2)
+
 		go func() {
 			defer wg.Done()
 			for evRef := range jb.pending {
 				pending[evRef.cursor] = evRef.body
 			}
 		}()
+
 		go func() {
 			defer wg.Done()
 			for evRef := range jb.completed {
@@ -134,10 +138,14 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 		select {
 		case <-jb.done:
 			return
-		case p := <-jb.pending:
-			pending[p.cursor] = p.body
-		case c := <-jb.completed:
-			completed[c.cursor] = c.body
+		case p, ok := <-jb.pending:
+			if ok {
+				pending[p.cursor] = p.body
+			}
+		case c, ok := <-jb.completed:
+			if ok {
+				completed[c.cursor] = c.body
+			}
 		case <-tick:
 			result := diff(pending, completed)
 			if err := flush(result, jb.config.PendingQueue.File); err != nil {
@@ -156,23 +164,25 @@ func (jb *Journalbeat) writeCursorLoop() {
 
 	var cursor string
 	saveCursorState := func(cursor string) {
-		if cursor != "" {
-			file, err := ioutil.TempFile("", "journalbeat-cursor")
-			if err != nil {
-				logp.Err("Could not create cursor state file: %v", err)
-				return
-			}
+		if cursor == "" {
+			return
+		}
 
-			if _, err = file.WriteString(cursor); err != nil {
-				_ = file.Close()
-				logp.Err("Could not write to cursor state file: %v", err)
-				return
-			}
-			_ = file.Close()
-			if err := os.Rename(file.Name(), jb.config.CursorStateFile); err != nil {
-				logp.Err("Could not save cursor state file: %v", err)
-				return
-			}
+		tempFile, err := ioutil.TempFile(filepath.Dir(jb.config.CursorStateFile), fmt.Sprintf(".%s", filepath.Base(jb.config.CursorStateFile)))
+		if err != nil {
+			logp.Err("Could not create cursor state file: %v", err)
+			return
+		}
+
+		if _, err = tempFile.WriteString(cursor); err != nil {
+			_ = tempFile.Close()
+			logp.Err("Could not write to cursor state file: %v, cursor: %s", err, cursor)
+			return
+		}
+		_ = tempFile.Close()
+		if err := os.Rename(tempFile.Name(), jb.config.CursorStateFile); err != nil {
+			logp.Err("Could not save cursor to the state file: %v, cursor: %s", err, cursor)
+			return
 		}
 	}
 
