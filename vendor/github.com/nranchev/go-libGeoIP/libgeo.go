@@ -31,7 +31,9 @@ package libgeo
 
 // Dependencies
 import (
+	"encoding/binary"
 	"errors"
+	"net"
 	"os"
 )
 
@@ -202,7 +204,7 @@ func Load(filename string) (gi *GeoIP, err error) {
 
 // Lookup by IP address and return location
 func (gi *GeoIP) GetLocationByIP(ip string) *Location {
-	return gi.GetLocationByIPNum(AddrToNum(ip))
+	return gi.GetLocationByIPNum(addrToNum(ip))
 }
 
 // Lookup by IP number and return location
@@ -319,36 +321,14 @@ func (gi *GeoIP) lookupByIPNum(ip uint32) int {
 	return 0
 }
 
-// Convert ip address to an int representation
-func AddrToNum(ip string) uint32 {
-	octet := uint32(0)
-	ipnum := uint32(0)
-	i := 3
-	for j := 0; j < len(ip); j++ {
-		c := byte(ip[j])
-		if c == '.' {
-			if octet > 255 {
-				return 0
-			}
-			ipnum <<= 8
-			ipnum += octet
-			i--
-			octet = 0
-		} else {
-			t := octet
-			octet <<= 3
-			octet += t
-			octet += t
-			c -= '0'
-			if c > 9 {
-				return 0
-			}
-			octet += uint32(c)
-		}
+func addrToNum(ip string) uint32 {
+	i := net.ParseIP(ip)
+	if i == nil {
+		return uint32(0)
 	}
-	if (octet > 255) || (i != 0) {
-		return 0
+	i = i.To4()
+	if i == nil {
+		return uint32(0)
 	}
-	ipnum <<= 8
-	return uint32(ipnum + octet)
+	return binary.BigEndian.Uint32(i)
 }
