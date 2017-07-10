@@ -25,7 +25,6 @@ import (
 
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
-	"github.com/elastic/beats/libbeat/publisher"
 )
 
 // eventSignal implements the op.Signaler interface
@@ -86,17 +85,6 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 		return os.Rename(tempFile.Name(), dest)
 	}
 
-	// load loads the map[string]common.MapStr from the JSON file on disk
-	load := func(source string, dest *map[string]common.MapStr) error {
-		file, err := os.Open(source)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		return json.NewDecoder(file).Decode(dest)
-	}
-
 	// on exit fully consume both queues and flush to disk the pending queue
 	defer func() {
 		var wg sync.WaitGroup
@@ -122,15 +110,6 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 			logp.Err("error writing pending queue %s: %s", jb.config.PendingQueue.File, err)
 		}
 	}()
-
-	// load the previously saved queue of unsent events and try to publish them if any
-	if err := load(jb.config.PendingQueue.File, &pending); err != nil {
-		logp.Warn("could not read the pending queue: %s", err)
-	}
-	logp.Info("Loaded %d events, trying to publish", len(pending))
-	for cursor, event := range pending {
-		jb.client.PublishEvent(event, publisher.Signal(&eventSignal{&eventReference{cursor, event}, jb.completed}), publisher.Guaranteed)
-	}
 
 	// flush the pending queue to disk periodically
 	tick := time.Tick(jb.config.PendingQueue.FlushPeriod)

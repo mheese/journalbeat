@@ -15,6 +15,7 @@
 package beater
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -122,6 +123,26 @@ func (jb *Journalbeat) initJournal() error {
 	return nil
 }
 
+func (jb *Journalbeat) publishPending() error {
+	pending := map[string]common.MapStr{}
+	file, err := os.Open(jb.config.PendingQueue.File)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if err = json.NewDecoder(file).Decode(&pending); err != nil {
+		return err
+	}
+
+	logp.Info("Loaded %d events, trying to publish", len(pending))
+	for cursor, event := range pending {
+		jb.client.PublishEvent(event, publisher.Signal(&eventSignal{&eventReference{cursor, event}, jb.completed}), publisher.Guaranteed)
+	}
+
+	return nil
+}
+
 // New creates beater
 func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 	config := config.DefaultConfig
@@ -163,6 +184,11 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 
 	if jb.config.WriteCursorState {
 		go jb.writeCursorLoop()
+	}
+
+	// load the previously saved queue of unsent events and try to publish them if any
+	if err := jb.publishPending(); err != nil {
+		logp.Warn("could not read the pending queue: %s", err)
 	}
 
 	for rawEvent := range journal.Follow(jb.journal, jb.done) {
