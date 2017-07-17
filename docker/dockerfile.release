@@ -1,6 +1,10 @@
 FROM debian:jessie
 MAINTAINER mbrooks
 
+RUN apt-get update && \
+    apt-get install -y pkg-config liblz4-1 && \
+    apt-get purge -y --auto-remove && rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p /data
 WORKDIR /
 COPY journalbeat journalbeat.yml ./
