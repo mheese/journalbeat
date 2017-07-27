@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,6 +42,52 @@ type Journalbeat struct {
 	cursorChan         chan string
 	pending, completed chan *eventReference
 	wg                 sync.WaitGroup
+}
+
+func (jb *Journalbeat) addMatchesForUnit(unit string) error {
+	var err error
+	AddMatch := func(s string) {
+		if err != nil {
+			return
+		}
+		err = jb.journal.AddMatch(s)
+	}
+
+	AddDisjunction := func() {
+		if err != nil {
+			return
+		}
+		err = jb.journal.AddDisjunction()
+	}
+
+	// Look for messages from the service itself
+	AddMatch("_SYSTEMD_UNIT=" + unit)
+
+	// Look for coredumps of the service
+	AddDisjunction()
+	AddMatch("MESSAGE_ID=fc2e22bc6ee647b6b90729ab34a250b1")
+	AddMatch("_UID=0")
+	AddMatch("COREDUMP_UNIT=" + unit)
+
+	// Look for messages from PID 1 about this service
+	AddDisjunction()
+	AddMatch("_PID=1")
+	AddMatch("UNIT=" + unit)
+
+	// Look for messages from authorized daemons about this service
+	AddDisjunction()
+	AddMatch("_UID=0")
+	AddMatch("OBJECT_SYSTEMD_UNIT=" + unit)
+
+	// Show all messages belonging to a slice
+	if err == nil && strings.HasSuffix(unit, ".slice") {
+		AddDisjunction()
+		AddMatch("_SYSTEMD_SLICE=" + unit)
+	}
+
+	AddDisjunction()
+
+	return err
 }
 
 func (jb *Journalbeat) initJournal() error {
@@ -83,7 +130,7 @@ func (jb *Journalbeat) initJournal() error {
 
 	// add specific units to monitor if any
 	for _, unit := range jb.config.Units {
-		if err = jb.journal.AddMatch(sdjournal.SD_JOURNAL_FIELD_SYSTEMD_UNIT + "=" + unit); err != nil {
+		if err = jb.addMatchesForUnit(unit); err != nil {
 			return fmt.Errorf("Filtering unit %s failed: %v", unit, err)
 		}
 	}
