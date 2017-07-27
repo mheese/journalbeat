@@ -32,6 +32,9 @@ journalbeat:
   # backup creation frequency option.
   #pending_queue.flush_period: 1s
 
+  # Size of the buffered queue for the published and acknowledged messages
+  #pending_queue.completed_queue_size: 8192
+
   # Lowercase and remove leading underscores, e.g. "_MESSAGE" -> "message"
   # (defaults to false)
   #clean_field_names: false

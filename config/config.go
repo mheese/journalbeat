@@ -41,16 +41,18 @@ type Config struct {
 }
 
 type pendingQueueConfig struct {
-	File        string        `config:"file"`
-	FlushPeriod time.Duration `config:"flush_period" validate:"min=0"`
+	File               string        `config:"file"`
+	FlushPeriod        time.Duration `config:"flush_period" validate:"min=0"`
+	CompletedQueueSize uint16        `config:"completed_queue_size"`
 }
 
 // Named constants for the journal cursor placement positions
 const (
-	SeekPositionCursor  = "cursor"
-	SeekPositionHead    = "head"
-	SeekPositionTail    = "tail"
-	SeekPositionDefault = "none"
+	SeekPositionCursor         = "cursor"
+	SeekPositionHead           = "head"
+	SeekPositionTail           = "tail"
+	SeekPositionDefault        = "none"
+	CompletedQueueSize  uint16 = 2 << 12
 )
 
 var (
@@ -73,8 +75,9 @@ var (
 		CursorFlushPeriod:  5 * time.Second,
 		CursorSeekFallback: SeekPositionTail,
 		PendingQueue: pendingQueueConfig{
-			File:        ".journalbeat-pending-queue",
-			FlushPeriod: 1 * time.Second,
+			File:               ".journalbeat-pending-queue",
+			FlushPeriod:        1 * time.Second,
+			CompletedQueueSize: CompletedQueueSize,
 		},
 		DefaultType: "journal",
 	}

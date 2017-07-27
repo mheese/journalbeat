@@ -124,6 +124,7 @@ func (jb *Journalbeat) initJournal() error {
 }
 
 func (jb *Journalbeat) publishPending() error {
+	refs := []*eventReference{}
 	pending := map[string]common.MapStr{}
 	file, err := os.Open(jb.config.PendingQueue.File)
 	if err != nil {
@@ -137,7 +138,19 @@ func (jb *Journalbeat) publishPending() error {
 
 	logp.Info("Loaded %d events, trying to publish", len(pending))
 	for cursor, event := range pending {
-		jb.client.PublishEvent(event, publisher.Signal(&eventSignal{&eventReference{cursor, event}, jb.completed}), publisher.Guaranteed)
+		ref := &eventReference{cursor, event}
+		jb.pending <- ref
+		refs = append(refs, ref)
+	}
+
+	for _, ref := range refs {
+		select {
+		case <-jb.done:
+			return nil
+		default:
+			// we need to clone to avoid races since map is a pointer...
+			jb.client.PublishEvent(ref.body.Clone(), publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed)
+		}
 	}
 
 	return nil
@@ -156,7 +169,7 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 		done:       make(chan struct{}),
 		cursorChan: make(chan string),
 		pending:    make(chan *eventReference),
-		completed:  make(chan *eventReference),
+		completed:  make(chan *eventReference, config.PendingQueue.CompletedQueueSize),
 	}
 
 	if err = jb.initJournal(); err != nil {
@@ -174,7 +187,6 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 		_ = jb.journal.Close()
 		close(jb.cursorChan)
 		close(jb.pending)
-		close(jb.completed)
 		jb.wg.Wait()
 	}()
 
@@ -224,4 +236,5 @@ func (jb *Journalbeat) Stop() {
 	logp.Info("Stopping Journalbeat")
 	close(jb.done)
 	_ = jb.client.Close()
+	close(jb.completed)
 }

@@ -48,7 +48,7 @@ func (ref *eventSignal) Failed() {
 }
 
 func (ref *eventSignal) Canceled() {
-	logp.Debug("Publishing message with cursor %s was canceled", ref.ev.cursor)
+	logp.Debug("pendingqueue", "Publishing message with cursor %s was canceled", ref.ev.cursor)
 }
 
 // managePendingQueueLoop runs the loop which manages the set of events waiting to be acked
