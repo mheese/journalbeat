@@ -3,7 +3,7 @@
 # The version of golang in most distro's repos is too old to compile journalbeat,
 # so we use travis-ci/gimme to get a more recent version.
 RUN mkdir -p /go/src/github.com/mheese/journalbeat
-ENV GOLANG_VERSION 1.8
+ENV GOLANG_VERSION 1.8.3
 ENV GOPATH /go
 ENV GIMME_ENV_PREFIX /go/envs
 RUN curl -sLo /go/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme \
@@ -13,5 +13,4 @@ RUN curl -sLo /go/gimme https://raw.githubusercontent.com/travis-ci/gimme/master
 WORKDIR /go/src/github.com/mheese/journalbeat
 CMD . ${GIMME_ENV_PREFIX}/go${GOLANG_VERSION}.env \
   && go test -race . ./beater \
-  && go build -race -ldflags '-s -w' . \
-  && chmod 0666 journalbeat
+  && go build -ldflags '-s -w' .
