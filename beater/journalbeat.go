@@ -83,10 +83,8 @@ func (jb *Journalbeat) initJournal() error {
 	}
 
 	// add specific units to monitor if any
-	for _, unit := range jb.config.Units {
-		if err = jb.journal.AddMatch(sdjournal.SD_JOURNAL_FIELD_SYSTEMD_UNIT + "=" + unit); err != nil {
-			return fmt.Errorf("Filtering unit %s failed: %v", unit, err)
-		}
+	if err = jb.addUnits(); err != nil {
+		return err
 	}
 
 	// seek position
