@@ -37,6 +37,7 @@ type Config struct {
 	MoveMetadataLocation string             `config:"move_metadata_to_field"`
 	DefaultType          string             `config:"default_type"`
 	Units                []string           `config:"units"`
+	Identifiers          []string           `config:identifiers`
 	JournalPaths         []string           `config:"journal_paths"`
 }
 

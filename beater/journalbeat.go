@@ -87,6 +87,11 @@ func (jb *Journalbeat) initJournal() error {
 		return err
 	}
 
+	// add syslog identifiers to monitor if any
+	if err = jb.addSyslogIdentifiers(); err != nil {
+		return err
+	}
+
 	// seek position
 	position := jb.config.SeekPosition
 	// try seekToCursor first, if that is requested
@@ -116,6 +121,23 @@ func (jb *Journalbeat) initJournal() error {
 
 	if err != nil {
 		return fmt.Errorf("Seeking to a good position in journal failed: %v", err)
+	}
+
+	return nil
+}
+
+// Add syslog identifiers to monitor
+func (jb *Journalbeat) addSyslogIdentifiers() error {
+	var err error
+
+	for _, identifier := range jb.config.Identifiers {
+		if err = jb.journal.AddMatch(sdjournal.SD_JOURNAL_FIELD_SYSLOG_IDENTIFIER + "=" + identifier); err != nil {
+			return fmt.Errorf("Filtering syslog identifier %s failed: %v", identifier, err)
+		}
+
+		if err = jb.journal.AddDisjunction(); err != nil {
+			return fmt.Errorf("Filtering syslog identifier %s failed: %v", identifier, err)
+		}
 	}
 
 	return nil
