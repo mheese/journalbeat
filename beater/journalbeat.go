@@ -35,6 +35,7 @@ import (
 type Journalbeat struct {
 	done   chan struct{}
 	config config.Config
+	mutex  sync.Mutex
 	client publisher.Client
 
 	journal *sdjournal.Journal
@@ -121,7 +122,7 @@ func (jb *Journalbeat) initJournal() error {
 	return nil
 }
 
-func (jb *Journalbeat) publishPending() error {
+func (jb *Journalbeat) publishPending(client publisher.Client) error {
 	refs := []*eventReference{}
 	pending := map[string]common.MapStr{}
 	file, err := os.Open(jb.config.PendingQueue.File)
@@ -147,7 +148,7 @@ func (jb *Journalbeat) publishPending() error {
 			return nil
 		default:
 			// we need to clone to avoid races since map is a pointer...
-			jb.client.PublishEvent(ref.body.Clone(), publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed)
+			client.PublishEvent(ref.body.Clone(), publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed)
 		}
 	}
 
@@ -188,7 +189,12 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 		jb.wg.Wait()
 	}()
 
-	jb.client = b.Publisher.Connect()
+	// only Stop needs concurrent access to client
+	client := b.Publisher.Connect()
+	// protect access with a lock
+	jb.mutex.Lock()
+	jb.client = client
+	jb.mutex.Unlock()
 
 	go jb.managePendingQueueLoop()
 
@@ -197,7 +203,7 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 	}
 
 	// load the previously saved queue of unsent events and try to publish them if any
-	if err := jb.publishPending(); err != nil {
+	if err := jb.publishPending(client); err != nil {
 		logp.Warn("could not read the pending queue: %s", err)
 	}
 
@@ -217,7 +223,7 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 		event["@realtime_timestamp"] = int64(rawEvent.RealtimeTimestamp)
 
 		ref := &eventReference{rawEvent.Cursor, event}
-		if jb.client.PublishEvent(event, publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed) {
+		if client.PublishEvent(event, publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed) {
 			jb.pending <- ref
 
 			// save cursor
@@ -233,6 +239,8 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 func (jb *Journalbeat) Stop() {
 	logp.Info("Stopping Journalbeat")
 	close(jb.done)
+	jb.mutex.Lock()
+	defer jb.mutex.Unlock()
 	_ = jb.client.Close()
 	close(jb.completed)
 }
