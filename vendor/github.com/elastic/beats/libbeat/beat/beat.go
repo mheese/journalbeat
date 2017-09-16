@@ -46,7 +46,6 @@ import (
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/dashboards/dashboards"
 	"github.com/elastic/beats/libbeat/logp"
-	"github.com/elastic/beats/libbeat/outputs/elasticsearch"
 	"github.com/elastic/beats/libbeat/paths"
 	"github.com/elastic/beats/libbeat/plugin"
 	"github.com/elastic/beats/libbeat/processors"
@@ -84,6 +83,10 @@ type Beater interface {
 // the beat its run-loop.
 type Creator func(*Beat, *common.Config) (Beater, error)
 
+// SetupMLCallback can be used by the Beat to register MachineLearning configurations
+// for the enabled modules.
+type SetupMLCallback func(*Beat) error
+
 // Beat contains the basic beat data and the publisher client used to publish
 // events.
 type Beat struct {
@@ -93,6 +96,9 @@ type Beat struct {
 	RawConfig *common.Config      // Raw config that can be unpacked to get Beat specific config data.
 	Config    BeatConfig          // Common Beat configuration data.
 	Publisher publisher.Publisher // Publisher
+
+	SetupMLCallback SetupMLCallback // setup callback for ML job configs
+	InSetupCmd      bool            // this is set to true when the `setup` command is called
 }
 
 // BeatConfig struct contains the basic configuration of every beat
@@ -217,6 +223,12 @@ func (b *Beat) launch(bt Creator) error {
 	if err != nil {
 		return err
 	}
+	if b.SetupMLCallback != nil && *setup {
+		err = b.SetupMLCallback(b)
+		if err != nil {
+			return err
+		}
+	}
 
 	logp.Info("%s start running.", b.Name)
 	defer logp.Info("%s stopped.", b.Name)
@@ -309,13 +321,8 @@ func (b *Beat) loadDashboards() error {
 		if esConfig == nil || !esConfig.Enabled() {
 			return fmt.Errorf("Dashboard loading requested but the Elasticsearch output is not configured/enabled")
 		}
-		esClient, err := elasticsearch.NewConnectedClient(esConfig)
-		if err != nil {
-			return fmt.Errorf("Error creating ES client: %v", err)
-		}
-		defer esClient.Close()
 
-		err = dashboards.ImportDashboards(b.Name, b.Version, esClient, b.Config.Dashboards)
+		err := dashboards.ImportDashboards(b.Name, b.Version, nil, esConfig, b.Config.Dashboards)
 		if err != nil {
 			return fmt.Errorf("Error importing Kibana dashboards: %v", err)
 		}
