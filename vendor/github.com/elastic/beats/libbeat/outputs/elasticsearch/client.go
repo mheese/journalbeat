@@ -369,7 +369,14 @@ func getPipeline(data outputs.Data, pipelineSel *outil.Selector) (string, error)
 // or can be overload by the event through setting index
 func getIndex(event common.MapStr, index outil.Selector) string {
 
-	ts := time.Time(event["@timestamp"].(common.Time)).UTC()
+	var ts time.Time
+	if timestamp, ok := event["@timestamp"].(common.Time); ok {
+		ts = time.Time(timestamp).UTC()
+
+	} else {
+		ts = time.Now().UTC()
+		logp.Err("@timestamp is not a common.Time but is %T in event %#v", event["@timestamp"], event)
+	}
 
 	// Check for dynamic index
 	// XXX: is this used/needed?
@@ -605,6 +612,11 @@ func (client *Client) LoadJSON(path string, json map[string]interface{}) ([]byte
 	return body, nil
 }
 
+// GetVersion returns the elasticsearch version the client is connected to
+func (client *Client) GetVersion() string {
+	return client.Connection.version
+}
+
 // CheckTemplate checks if a given template already exist. It returns true if
 // and only if Elasticsearch returns with HTTP status code 200.
 func (client *Client) CheckTemplate(templateName string) bool {
@@ -729,6 +741,10 @@ func (conn *Connection) execHTTPRequest(req *http.Request) (int, []byte, error) 
 		return status, nil, retErr
 	}
 	return status, obj, retErr
+}
+
+func (conn *Connection) GetVersion() string {
+	return conn.version
 }
 
 func closing(c io.Closer) {
