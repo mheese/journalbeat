@@ -38,6 +38,7 @@ type Config struct {
 	DefaultType          string             `config:"default_type"`
 	Units                []string           `config:"units"`
 	JournalPaths         []string           `config:"journal_paths"`
+	MatchPatterns        []string           `config:"match_patterns"`
 }
 
 type pendingQueueConfig struct {

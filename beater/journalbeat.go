@@ -87,6 +87,13 @@ func (jb *Journalbeat) initJournal() error {
 		return err
 	}
 
+	// add specific patterns to monitor if any
+	for _, pattern := range jb.config.MatchPatterns {
+		if err = jb.journal.AddMatch(pattern); err != nil {
+			return fmt.Errorf("Filtering pattern %s failed: %v", pattern, err)
+		}
+	}
+
 	// seek position
 	position := jb.config.SeekPosition
 	// try seekToCursor first, if that is requested
