@@ -14,7 +14,8 @@ WORKDIR /go/src/github.com/mheese/journalbeat
 CMD . ${GIMME_ENV_PREFIX}/go${GOLANG_VERSION}.env \
   && go get -u -v github.com/golang/dep/cmd/dep \
   && printenv \
-  && ls ${GOROOT}/src/github.com/golang/dep \
+  && ls /go/bin \
+  && ls /go/src/github.com/golang/dep \
   && ${GOROOT}/bin/dep ensure \
   && go test -race . ./beater \
   && go build -ldflags '-s -w' .
