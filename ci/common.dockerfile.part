@@ -13,6 +13,6 @@ RUN curl -sLo /go/gimme https://raw.githubusercontent.com/travis-ci/gimme/master
 WORKDIR /go/src/github.com/mheese/journalbeat
 CMD . ${GIMME_ENV_PREFIX}/go${GOLANG_VERSION}.env \
   && go get -u github.com/golang/dep/cmd/dep \
-  && dep ensure \
+  && $GOBIN/dep ensure \
   && go test -race . ./beater \
   && go build -ldflags '-s -w' .
