@@ -87,6 +87,11 @@ func (jb *Journalbeat) initJournal() error {
 		return err
 	}
 
+	// add kernel logs
+	if err = jb.addKernel(); err != nil {
+		return err
+	}
+
 	// seek position
 	position := jb.config.SeekPosition
 	// try seekToCursor first, if that is requested
