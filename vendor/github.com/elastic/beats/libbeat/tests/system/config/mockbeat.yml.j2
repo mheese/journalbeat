@@ -1,0 +1,71 @@
+############################# Mockbeat ######################################
+mockbeat:
+
+
+
+
+############################# General ############################################
+
+# The name of the shipper that publishes the network data. It can be used to group
+# all the transactions sent by a single shipper in the web interface.
+# If this options is not defined, the hostname is used.
+name:
+
+# The tags of the shipper are included in their own field with each
+# transaction published. Tags make it easy to group servers by different
+# logical properties.
+tags: [
+{%- if agent_tags -%}
+	{%- for tag in agent_tags -%}
+		"{{ tag }}"
+		{%- if not loop.last %}, {% endif -%}
+	{%- endfor -%}
+{%- endif -%}]
+
+
+
+############################# Output ############################################
+
+# Configure what outputs to use when sending the data collected by packetbeat.
+# Multiple outputs may be enabled.
+output:
+  {% if console -%}
+  console:
+    {% for k, v in console.items() -%}
+    {{ k }}: {{ v }}
+    {% endfor -%}
+  {%- endif %}
+
+  # Elasticsearch as output
+  # Options:
+  # host, port: where Elasticsearch is listening on
+  #elasticsearch:
+  #  host: localhost
+  #  port: 9200
+
+  # Redis as output
+  # Options:
+  # host, port: where Redis is listening on
+  #redis:
+  #  host: localhost
+  #  port: 6379
+
+  # File as output
+  # Options
+  # path: where to save the files
+  # filename: name of the files
+  # rotate_every_kb: maximum size of the files in path
+  # number of files: maximum number of files in path
+  file:
+    path: {{ output_file_path|default(beat.working_dir + "/output") }}
+    filename: "{{ output_file_filename|default("mockbeat") }}"
+    rotate_every_kb: 1000
+    #number_of_files: 7
+
+#================================ Logging =====================================
+
+{% if metrics_period -%}
+logging.metrics.period: {{ metrics_period }}
+{%- endif %}
+
+# vim: set ft=jinja:

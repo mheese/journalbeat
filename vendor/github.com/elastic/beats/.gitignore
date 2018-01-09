@@ -1,0 +1,30 @@
+# Directories
+/.vagrant
+/.idea
+/build
+/*/data
+/*/logs
+/*/_meta/kibana/5.x/index-pattern
+/*/_meta/kibana/default/index-pattern
+
+# Files
+.DS_Store
+/glide.lock
+/beats.iml
+*.dev.yml
+*.generated.yml
+coverage.out
+
+# Editor swap files
+*.swp
+*.swo
+*.swn
+
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+*.exe
+*.test
+*.prof
+*.pyc

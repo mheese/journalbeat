@@ -51,25 +51,79 @@
 
 [[projects]]
   name = "github.com/elastic/beats"
-  packages = ["libbeat/beat","libbeat/cfgfile","libbeat/common","libbeat/common/dtfmt","libbeat/common/file","libbeat/common/fmtstr","libbeat/common/jsontransform","libbeat/common/match","libbeat/common/op","libbeat/common/streambuf","libbeat/dashboards/dashboards","libbeat/logp","libbeat/monitoring","libbeat/monitoring/adapter","libbeat/outputs","libbeat/outputs/codecs/format","libbeat/outputs/codecs/json","libbeat/outputs/console","libbeat/outputs/elasticsearch","libbeat/outputs/fileout","libbeat/outputs/kafka","libbeat/outputs/logstash","libbeat/outputs/mode","libbeat/outputs/mode/lb","libbeat/outputs/mode/modeutil","libbeat/outputs/mode/single","libbeat/outputs/outil","libbeat/outputs/redis","libbeat/outputs/transport","libbeat/paths","libbeat/plugin","libbeat/processors","libbeat/processors/actions","libbeat/processors/add_cloud_metadata","libbeat/publisher","libbeat/service","libbeat/setup/kibana","metricbeat/schema","metricbeat/schema/mapstriface"]
-  revision = "c34337071a05d7ae4f7397725319e0573c4a3e65"
-  version = "v5.6.3"
+  packages = [
+    "libbeat/beat",
+    "libbeat/cfgfile",
+    "libbeat/common",
+    "libbeat/common/dtfmt",
+    "libbeat/common/file",
+    "libbeat/common/fmtstr",
+    "libbeat/common/jsontransform",
+    "libbeat/common/match",
+    "libbeat/common/op",
+    "libbeat/common/streambuf",
+    "libbeat/dashboards/dashboards",
+    "libbeat/logp",
+    "libbeat/monitoring",
+    "libbeat/monitoring/adapter",
+    "libbeat/outputs",
+    "libbeat/outputs/codecs/format",
+    "libbeat/outputs/codecs/json",
+    "libbeat/outputs/console",
+    "libbeat/outputs/elasticsearch",
+    "libbeat/outputs/fileout",
+    "libbeat/outputs/kafka",
+    "libbeat/outputs/logstash",
+    "libbeat/outputs/mode",
+    "libbeat/outputs/mode/lb",
+    "libbeat/outputs/mode/modeutil",
+    "libbeat/outputs/mode/single",
+    "libbeat/outputs/outil",
+    "libbeat/outputs/redis",
+    "libbeat/outputs/transport",
+    "libbeat/paths",
+    "libbeat/plugin",
+    "libbeat/processors",
+    "libbeat/processors/actions",
+    "libbeat/processors/add_cloud_metadata",
+    "libbeat/publisher",
+    "libbeat/service",
+    "libbeat/setup/kibana",
+    "metricbeat/schema",
+    "metricbeat/schema/mapstriface"
+  ]
+  revision = "b1807df44be1b210aba914bc90f299ffd792e4f6"
+  version = "v5.6.5"
 
 [[projects]]
   name = "github.com/elastic/go-lumber"
-  packages = ["client/v2","log","protocol/v2"]
+  packages = [
+    "client/v2",
+    "log",
+    "protocol/v2"
+  ]
   revision = "616041e345fc33c97bc0eb0fa6b388aa07bca3e1"
   version = "v0.1.0"
 
 [[projects]]
   name = "github.com/elastic/go-ucfg"
-  packages = [".","cfgutil","flag","internal/parse","json","yaml"]
+  packages = [
+    ".",
+    "cfgutil",
+    "flag",
+    "internal/parse",
+    "json",
+    "yaml"
+  ]
   revision = "ec8488a52542c0c51e42e8ea204dcaff400bc644"
   version = "v0.4.6"
 
 [[projects]]
   name = "github.com/garyburd/redigo"
-  packages = ["internal","redis"]
+  packages = [
+    "internal",
+    "redis"
+  ]
   revision = "34a326de1fea52965fa5ad664d3fc7163dd4b0a1"
   version = "v1.2.0"
 
@@ -87,7 +141,10 @@
 
 [[projects]]
   name = "github.com/klauspost/compress"
-  packages = ["flate","zlib"]
+  packages = [
+    "flate",
+    "zlib"
+  ]
   revision = "6c8db69c4b49dd4df1fff66996cf556176d0b9bf"
   version = "v1.2.1"
 
@@ -99,7 +156,11 @@
 
 [[projects]]
   name = "github.com/mheese/journalbeat"
-  packages = ["beater","config","journal"]
+  packages = [
+    "beater",
+    "config",
+    "journal"
+  ]
   revision = "f0a328caa5af485c3f0f34d3853b5bfd313b35b6"
   version = "v5.6.0"
 
@@ -136,7 +197,10 @@
 [[projects]]
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
-  packages = [".","exp"]
+  packages = [
+    ".",
+    "exp"
+  ]
   revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
 
 [[projects]]
@@ -154,7 +218,11 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["windows","windows/svc","windows/svc/debug"]
+  packages = [
+    "windows",
+    "windows/svc",
+    "windows/svc/debug"
+  ]
   revision = "176de7413414c01569163271c745672ff04a7267"
 
 [[projects]]
@@ -166,6 +234,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a2877e0ddaf05f70b09ff9e20545da44d9defb896488d11f5185a54cab68d49e"
+  inputs-digest = "119a4e2e036c4850446685cc0731e117c352e5e439281a7d0946df3ee61fcdaf"
   solver-name = "gps-cdcl"
   solver-version = 1

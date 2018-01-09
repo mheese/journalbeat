@@ -1,0 +1,156 @@
+//////////////////////////////////////////////////////////////////////////
+//// This content is shared by all Elastic Beats. Make sure you keep the
+//// descriptions here generic enough to work for all Beats that include
+//// this file. When using cross references, make sure that the cross
+//// references resolve correctly for any files that include this one.
+//// Use the appropriate variables defined in the index.asciidoc file to
+//// resolve Beat names: beatname_uc and beatname_lc.
+//// Use the following include to pull this content into a doc file:
+//// include::../../libbeat/docs/setup-repositories.asciidoc[]
+//////////////////////////////////////////////////////////////////////////
+
+[[setup-repositories]]
+=== Repositories for APT and YUM
+
+We have repositories available for APT and YUM-based distributions. Note that we
+provide binary packages, but no source packages.
+
+We use the PGP key https://pgp.mit.edu/pks/lookup?op=vindex&search=0xD27D666CD88E42B4[D88E42B4],
+Elasticsearch Signing Key, with fingerprint
+
+    4609 5ACC 8548 582C 1A26 99A9 D27D 666C D88E 42B4
+
+to sign all our packages. It is available from https://pgp.mit.edu.
+
+[float]
+==== APT
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {stack-version} of Beats has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+To add the Beats repository for APT:
+
+. Download and install the Public Signing Key:
++
+[source,sh]
+--------------------------------------------------
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+--------------------------------------------------
+
+. You may need to install the `apt-transport-https` package on Debian before proceeding:
++
+[source,sh]
+--------------------------------------------------
+sudo apt-get install apt-transport-https
+--------------------------------------------------
+
+. Save the repository definition to  +/etc/apt/sources.list.d/elastic-5.x.list+:
++
+["source","sh",subs="attributes,callouts"]
+--------------------------------------------------
+echo "deb https://artifacts.elastic.co/packages/5.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-5.x.list
+--------------------------------------------------
++
+[WARNING]
+==================================================
+To add the Elastic repository, make sure that you use the `echo` method  shown
+in the example. Do not use `add-apt-repository` because it will add a `deb-src`
+entry, but we do not provide a source package.
+
+If you have added the `deb-src` entry by mistake, you will see an error like
+the following:
+
+    Unable to find expected entry 'main/source/Sources' in Release file (Wrong sources.list entry or malformed file)
+
+Simply delete the `deb-src` entry from the `/etc/apt/sources.list` file, and the installation should work as expected.
+==================================================
+
+ifeval::["{beatname_uc}"=="Heartbeat"]
+
+. On Debian or Ubuntu, pin the repository before installing to ensure that the
+correct Elastic Heartbeat package is installed. To do this, edit 
+`/etc/apt/preferences` (or `/etc/apt/preferences.d/heartbeat`) as follows:
++
+[source,shell]
+--------------------------------------------------
+Package: heartbeat
+Pin: origin artifacts.elastic.co
+Pin-Priority: 700
+--------------------------------------------------
+
+endif::[]
+
+. Run `apt-get update`, and the repository is ready for use. For example, you can
+install {beatname_uc} by running:
++
+["source","sh",subs="attributes"]
+--------------------------------------------------
+sudo apt-get update && sudo apt-get install {beatname_lc}
+--------------------------------------------------
+
+. To configure the Beat to start automatically during boot, run:
++
+["source","sh",subs="attributes"]
+--------------------------------------------------
+sudo update-rc.d {beatname_lc} defaults 95 10
+--------------------------------------------------
+
+endif::[]
+
+[float]
+==== YUM
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {stack-version} of Beats has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+To add the Beats repository for YUM:
+
+. Download and install the public signing key:
++
+[source,sh]
+--------------------------------------------------
+sudo rpm --import https://packages.elastic.co/GPG-KEY-elasticsearch
+--------------------------------------------------
+
+. Create a file with a `.repo` extension (for example, `elastic.repo`) in
+your `/etc/yum.repos.d/` directory and add the following lines:
++
+["source","sh",subs="attributes,callouts"]
+--------------------------------------------------
+[elastic-5.x]
+name=Elastic repository for 5.x packages
+baseurl=https://artifacts.elastic.co/packages/5.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+--------------------------------------------------
++
+Your repository is ready to use. For example, you can install {beatname_uc} by
+running:
++
+["source","sh",subs="attributes"]
+--------------------------------------------------
+sudo yum install {beatname_lc}
+--------------------------------------------------
+
+. To configure the Beat to start automatically during boot, run:
++
+["source","sh",subs="attributes"]
+--------------------------------------------------
+sudo chkconfig --add {beatname_lc}
+--------------------------------------------------
+
+endif::[]
+

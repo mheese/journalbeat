@@ -1,0 +1,50 @@
+{
+    "@timestamp": "2016-05-23T08:05:34.853Z",
+    "beat": {
+        "hostname": "host.example.com",
+        "name": "host.example.com"
+    },
+    "metricset": {
+        "module": "system",
+        "name": "cpu",
+        "rtt": 115
+    },
+    "system": {
+        "cpu": {
+            "cores": 8,
+            "idle": {
+                "pct": 7.0854,
+                "ticks": 1617015818
+            },
+            "iowait": {
+                "pct": 0,
+                "ticks": 0
+            },
+            "irq": {
+                "pct": 0,
+                "ticks": 0
+            },
+            "nice": {
+                "pct": 0,
+                "ticks": 0
+            },
+            "softirq": {
+                "pct": 0,
+                "ticks": 0
+            },
+            "steal": {
+                "pct": 0,
+                "ticks": 0
+            },
+            "system": {
+                "pct": 0.3317,
+                "ticks": 40488863
+            },
+            "user": {
+                "pct": 0.5829,
+                "ticks": 48194733
+            }
+        }
+    },
+    "type": "metricsets"
+}

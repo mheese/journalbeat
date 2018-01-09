@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# this is executed in the docker fpm image
+set -e
+cd /build
+
+# add SNAPSHOT if it was requested
+VERSION={{.version}}
+if [ "$SNAPSHOT" = "yes" ]; then
+    VERSION="${VERSION}-SNAPSHOT"
+fi
+
+mkdir /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}
+cp -a homedir/. /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/
+install -D -m 755 import_dashboards-windows-{{.arch}} /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/scripts/import_dashboards.exe
+cp {{.beat_name}}-windows-{{.arch}}.exe /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/{{.beat_name}}.exe
+unix2dos {{.beat_name}}-win.yml
+cp {{.beat_name}}-win.yml /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/{{.beat_name}}.yml
+cp {{.beat_name}}-win.full.yml /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/{{.beat_name}}.full.yml
+cp {{.beat_name}}.template.json /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/
+cp {{.beat_name}}.template-es2x.json /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/
+cp {{.beat_name}}.template-es6x.json /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/
+cp install-service-{{.beat_name}}.ps1 /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/
+cp uninstall-service-{{.beat_name}}.ps1 /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}/
+
+mkdir -p upload
+zip -r upload/{{.beat_name}}-${VERSION}-windows-{{.win_arch}}.zip /{{.beat_name}}-${VERSION}-windows-{{.win_arch}}
+echo "Created upload/{{.beat_name}}-${VERSION}-windows-{{.win_arch}}.zip"
+
+cd upload
+sha1sum {{.beat_name}}-${VERSION}-windows-{{.win_arch}}.zip | awk '{print $1;}' > {{.beat_name}}-${VERSION}-windows-{{.win_arch}}.zip.sha1
+echo "Created upload/{{.beat_name}}-${VERSION}-windows-{{.win_arch}}.zip.sha1"

@@ -1,0 +1,89 @@
+version: '2'
+services:
+  beat:
+    build: ${PWD}/.
+    environment:
+      - TEST_ENVIRONMENT=false
+    working_dir: /go/src/github.com/elastic/beats/metricbeat
+    volumes:
+      - ${PWD}/..:/go/src/github.com/elastic/beats/
+      # This is required for the docker module tests
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: make
+    entrypoint: /go/src/github.com/elastic/beats/metricbeat/docker-entrypoint.sh
+
+    # Module specific dependencies
+    depends_on:
+      - apache
+      - ceph
+      - couchbase
+      - haproxy
+      - jolokia
+      - kafka
+      - mongodb
+      - mysql
+      - nginx
+      - phpfpm
+      - postgresql
+      - prometheus
+      - redis
+      - zookeeper
+
+    env_file:
+      - ${PWD}/module/apache/_meta/env
+      - ${PWD}/module/ceph/_meta/env
+      - ${PWD}/module/couchbase/_meta/env
+      - ${PWD}/module/haproxy/_meta/env
+      - ${PWD}/module/kafka/_meta/env
+      - ${PWD}/module/jolokia/_meta/env
+      - ${PWD}/module/mongodb/_meta/env
+      - ${PWD}/module/mysql/_meta/env
+      - ${PWD}/module/nginx/_meta/env
+      - ${PWD}/module/php_fpm/_meta/env
+      - ${PWD}/module/postgresql/_meta/env
+      - ${PWD}/module/prometheus/_meta/env
+      - ${PWD}/module/redis/_meta/env
+      - ${PWD}/module/zookeeper/_meta/env
+
+  # Modules
+  apache:
+    build: ${PWD}/module/apache/_meta
+
+  ceph:
+    build: ${PWD}/module/ceph/_meta
+
+  couchbase:
+    build: ${PWD}/module/couchbase/_meta
+
+  haproxy:
+    build: ${PWD}/module/haproxy/_meta
+
+  jolokia:
+    build: ${PWD}/module/jolokia/_meta
+
+  kafka:
+    build: ${PWD}/module/kafka/_meta
+
+  mongodb:
+    build: ${PWD}/module/mongodb/_meta
+
+  mysql:
+    build: ${PWD}/module/mysql/_meta
+
+  nginx:
+    build: ${PWD}/module/nginx/_meta
+
+  phpfpm:
+    build: ${PWD}/module/php_fpm/_meta
+
+  postgresql:
+    build: ${PWD}/module/postgresql/_meta
+
+  prometheus:
+    build: ${PWD}/module/prometheus/_meta
+
+  redis:
+    build: ${PWD}/module/redis/_meta
+
+  zookeeper:
+    build: ${PWD}/module/zookeeper/_meta

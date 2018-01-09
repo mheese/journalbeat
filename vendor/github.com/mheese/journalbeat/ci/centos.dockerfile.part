@@ -1,0 +1,4 @@
+FROM centos:7
+MAINTAINER mheese
+
+RUN yum install -y git tar gcc systemd systemd-devel make && yum -y clean all

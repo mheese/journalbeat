@@ -1,0 +1,8 @@
+heartbeat.monitors:
+- type: icmp
+  hosts: ["localhost"]
+  schedule: '@every 10s'
+
+output.file:
+  path: {{ output_file_path|default(beat.working_dir + "/output") }}
+  filename: "{{ output_file_filename|default("heartbeat") }}"

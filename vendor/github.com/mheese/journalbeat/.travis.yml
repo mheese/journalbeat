@@ -1,0 +1,27 @@
+language: go
+sudo: required
+services:
+- docker
+env:
+- DISTRO=centos
+- DISTRO=fedora
+- DISTRO=debian
+install: true
+script:
+- docker ps -a
+- mkdir -p build/
+- cat ci/${DISTRO}.dockerfile.part ci/common.dockerfile.part > Dockerfile
+- docker build -t journalbeat-${DISTRO}-packaging .
+- docker run -v ${PWD}:/go/src/github.com/mheese/journalbeat:rw journalbeat-${DISTRO}-packaging
+- mv journalbeat journalbeat-${DISTRO}
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: WEXhY3uegdyYgl1j5SZsZRiHD0ZlXZz9hYzikKecjvJFUCPuQHc76acHJV1LIgwLEnb/LKOhW78/KvHCz7JPtkeOaeYfzVec40DNaSSL5iAEcVO0h1j4n8AhQQmMpikwFehwoQcJggBQC4U4hO7a86a3obIlTDeyAWwygMWTEi7927te5Z9EsWpO0+dfBTczQg+77k24eZdsBENjAlp2B8vp2pl0RidC3lSBHnEPh/WXLYfx3+3oDWpIlrWMg3/9iCJ5IVcxqWZa1qahc9btbPXBnttJt9vJg/LjZbyjoNHDgPP6j3RSPxdN9h6Bqm+kQCnxG/WAeZMzNjvti5KueKCkARPSH21XA60o4EmliBXfrvRivP4uq+ELiYrkzaIbge1OZlM6nnyKd0Diap9+ZYD/jEjtjJWFI9Fxbkub9BSZZrZvqmG93oNZ3AYV5cOSgpskNk2fEuG91HDQk8mbsO8r2fN/WgjhfTEAQjKKWdt1jpFF08+UBcCgqYrnHZXyK/bI4XPJEIardzyvPvl6yJcIXQ0H/53RwUfdTQ3FKJo20lM+xGQe+kkimv1AAqa33fe+mLhP0OYFCjGesF7XlQNdQjn+TCeIMvrbQCN6OMyMcrz1LAo//Zk6fMF1XOvn9M3Qd0kLGyphw1bJrdnCz6cZm/SYcwZBjlCzwfIeh54=
+  file:
+  - journalbeat-${DISTRO}
+  on:
+    repo: mheese/journalbeat
+    branch: master
+    tags: true
