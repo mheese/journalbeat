@@ -17,6 +17,7 @@ package beater
 import (
 	"strconv"
 	"strings"
+        "regexp"
 
 	"github.com/coreos/go-systemd/sdjournal"
 	"github.com/elastic/beats/libbeat/common"
@@ -45,11 +46,15 @@ func MapStrFromJournalEntry(ev *sdjournal.JournalEntry, cleanKeys bool, convertT
 
 	// range over the JournalEntry Fields and convert to the common.MapStr
 	for k, v := range ev.Fields {
+		var re = regexp.MustCompile(`\x1b\[[0-9;]*[mG]`)
+		// if str, ok := nv.(string); ok {
+		newv := re.ReplaceAllString(v, ``)
+		// }
 		nk := makeNewKey(k, cleanKeys)
-		nv := makeNewValue(v, convertToNumbers)
+		nv := makeNewValue(newv, convertToNumbers)
 		// message Field should be on the top level of the event
 		if nk == "message" {
-			m[nk] = nv
+		        m[nk] = nv
 			continue
 		}
 		target[nk] = nv
