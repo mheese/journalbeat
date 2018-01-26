@@ -136,6 +136,9 @@ func (jb *Journalbeat) publishPending() error {
 
 	logp.Info("Loaded %d events, trying to publish", len(pending))
 	for cursor, event := range pending {
+		// We need to convert the timestamp back to the correct type before trying to publish
+		timestamp, _ := time.Parse(time.RFC3339, event["@timestamp"].(string))
+		event["@timestamp"] = common.Time(timestamp)
 		ref := &eventReference{cursor, event}
 		jb.pending <- ref
 		refs = append(refs, ref)
