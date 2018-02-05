@@ -1,0 +1,338 @@
+[[packetbeat-getting-started]]
+== Getting Started With Packetbeat
+
+The best way to understand the value of a network packet analytics system like
+Packetbeat is to try it on your own traffic.
+
+To get started with your own Packetbeat setup, install and configure these related products:
+
+ * Elasticsearch for storage and indexing the data.
+ * Kibana for the UI.
+ * Logstash (optional) for inserting data into Elasticsearch.
+
+See {libbeat}/getting-started.html[Getting Started with Beats and the Elastic Stack] for more information.
+
+After installing the Elastic Stack, read the following topics to learn how to install, configure, and run Packetbeat:
+
+* <<packetbeat-installation>>
+* <<configuring-packetbeat>>
+* <<packetbeat-template>>
+* <<packetbeat-starting>>
+* <<packetbeat-sample-dashboards>>
+* <<command-line-options>>
+* <<directory-layout>>
+
+[[packetbeat-installation]]
+=== Step 1: Installing Packetbeat
+
+include::../../libbeat/docs/shared-download-and-install.asciidoc[]
+
+[[deb]]
+*deb:*
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {stack-version} of {beatname_uc} has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+["source","sh",subs="attributes,callouts"]
+----------------------------------------------------------------------
+sudo apt-get install libpcap0.8
+curl -L -O https://artifacts.elastic.co/downloads/beats/packetbeat/packetbeat-{version}-amd64.deb
+sudo dpkg -i packetbeat-{version}-amd64.deb
+----------------------------------------------------------------------
+
+endif::[]
+
+[[rpm]]
+*rpm:*
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {stack-version} of {beatname_uc} has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+["source","sh",subs="attributes,callouts"]
+----------------------------------------------------------------------
+sudo yum install libpcap
+curl -L -O https://artifacts.elastic.co/downloads/beats/packetbeat/packetbeat-{version}-x86_64.rpm
+sudo rpm -vi packetbeat-{version}-x86_64.rpm
+----------------------------------------------------------------------
+
+endif::[]
+
+[[docker]]
+*docker:*
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {stack-version} of {beatname_uc} has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+["source", "shell", subs="attributes"]
+------------------------------------------------
+docker pull {dockerimage}
+------------------------------------------------
+
+endif::[]
+
+[[mac]]
+*mac:*
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {stack-version} of {beatname_uc} has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+["source","sh",subs="attributes,callouts"]
+----------------------------------------------------------------------
+curl -L -O https://artifacts.elastic.co/downloads/beats/packetbeat/packetbeat-{version}-darwin-x86_64.tar.gz
+tar xzvf packetbeat-{version}-darwin-x86_64.tar.gz
+----------------------------------------------------------------------
+
+endif::[]
+
+[[win]]
+*win:*
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {stack-version} of {beatname_uc} has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+. Download and install WinPcap from this
+http://www.winpcap.org/install/default.htm[page]. WinPcap is a library that uses
+a driver to enable packet capturing.
+
+. Download the Packetbeat Windows zip file from the
+https://www.elastic.co/downloads/beats/packetbeat[downloads page].
+
+. Extract the contents of the zip file into `C:\Program Files`.
+
+. Rename the `packetbeat-<version>-windows` directory to `Packetbeat`.
+
+. Open a PowerShell prompt as an Administrator (right-click the PowerShell icon and select *Run As Administrator*). If you are running Windows XP, you may need to download and install PowerShell.
+
+. From the PowerShell prompt, run the following commands to install Packetbeat as a Windows service:
++
+[source,shell]
+----------------------------------------------------------------------
+PS > cd 'C:\Program Files\Packetbeat'
+PS C:\Program Files\Packetbeat> .\install-service-packetbeat.ps1
+----------------------------------------------------------------------
+
+NOTE: If script execution is disabled on your system, you need to set the execution policy for the current session to allow the script to run. For example: `PowerShell.exe -ExecutionPolicy UnRestricted -File .\install-service-packetbeat.ps1`.
+
+endif::[]
+
+Before starting Packetbeat, you should look at the configuration options in the
+configuration file, for example `C:\Program Files\Packetbeat\packetbeat.yml` or `/etc/packetbeat/packetbeat.yml`. For
+more information about these options, see <<packetbeat-configuration>>.
+
+[[configuring-packetbeat]]
+=== Step 2: Configuring Packetbeat
+
+include::../../libbeat/docs/shared-configuring.asciidoc[]
+
+To configure Packetbeat:
+
+. Select the network interface from which to capture the traffic.
+
+* On
+Linux: Packetbeat supports capturing all messages sent or received by the
+server on which Packetbeat is installed. For this, use `any` as the device:
++
+[source,yaml]
+----------------------------------------------------------------------
+packetbeat.interfaces.device: any
+----------------------------------------------------------------------
+
+* On OS X, capturing from the `any` device doesn't work. You would
+typically use either `lo0` or `en0` depending on which traffic you want to
+capture.
+
+* On Windows, run the following command to list the available network interfaces:
++
+[source,shell]
+----------------------------------------------------------------------
+PS C:\Program Files\Packetbeat> .\packetbeat.exe -devices
+
+0: \Device\NPF_{113535AD-934A-452E-8D5F-3004797DE286} (Intel(R) PRO/1000 MT Desktop Adapter)
+----------------------------------------------------------------------
++
+In this example, there's only one network card, with the index 0, installed on the system. If
+there are multiple network cards, remember the index of the device you want to use for
+capturing the traffic.
++
+Modify the `device` line to point to the index of the device:
++
+[source,yml]
+----------------------------------------------------------------------
+packetbeat.interfaces.device: 0
+----------------------------------------------------------------------
+
+. In the protocols section, configure the ports on which Packetbeat can find each
+protocol. If you use any non-standard ports, add them here. Otherwise, the
+default values should do just fine.
++
+[source,yaml]
+----------------------------------------------------------------------
+packetbeat.protocols.dns:
+  ports: [53]
+
+  include_authorities: true
+  include_additionals: true
+
+packetbeat.protocols.http:
+  ports: [80, 8080, 8081, 5000, 8002]
+
+packetbeat.protocols.memcache:
+  ports: [11211]
+
+packetbeat.protocols.mysql:
+  ports: [3306]
+
+packetbeat.protocols.pgsql:
+  ports: [5432]
+
+packetbeat.protocols.redis:
+  ports: [6379]
+
+packetbeat.protocols.thrift:
+  ports: [9090]
+
+packetbeat.protocols.mongodb:
+  ports: [27017]
+
+packetbeat.protocols.cassandra:
+  ports: [9042]
+
+----------------------------------------------------------------------
++
+. Set the IP address and port where Packetbeat can find the Elasticsearch
+installation:
++
+[source,yaml]
+----------------------------------------------------------------------
+#-------------------------- Elasticsearch output ------------------------------
+output.elasticsearch:
+  hosts: ["192.168.1.42:9200"]
+----------------------------------------------------------------------
++
+If you are sending output to Logstash, see <<config-packetbeat-logstash>> instead.
+
+TIP: To test your configuration file, change to the directory where the Packetbeat
+binary is installed, and run Packetbeat in the foreground with the following
+options specified: +sudo ./packetbeat -configtest -e+. Make sure your config files are
+in the path expected by Packetbeat (see <<directory-layout>>). If you
+installed from DEB or RPM packages, run +sudo ./packetbeat.sh -configtest -e+.
+Depending on your OS, you might run into file ownership issues when you run this
+test. See {libbeat}/config-file-permissions.html[Config File Ownership and Permissions]
+in the _Beats Platform Reference_ for more information.
+
+[[packetbeat-template]]
+=== Step 3: Loading the Index Template in Elasticsearch
+
+:allplatforms:
+include::../../libbeat/docs/shared-template-load.asciidoc[]
+
+[[packetbeat-starting]]
+=== Step 4: Starting Packetbeat
+
+Run Packetbeat by issuing the command that is appropriate for your platform.
+
+NOTE: If you use an init.d script to start Packetbeat on deb or rpm, you can't
+specify command line flags (see <<command-line-options>>). To specify flags,
+start Packetbeat in the foreground.
+
+*deb:*
+
+[source,shell]
+----------------------------------------------------------------------
+sudo /etc/init.d/packetbeat start
+----------------------------------------------------------------------
+
+*rpm:*
+
+[source,shell]
+----------------------------------------------------------------------
+sudo /etc/init.d/packetbeat start
+----------------------------------------------------------------------
+
+*docker:*
+
+["source", "shell", subs="attributes"]
+----------------------------------------------------------------------
+docker run {dockerimage}
+----------------------------------------------------------------------
+
+*mac:*
+
+[source,shell]
+----------------------------------------------------------------------
+sudo chown root packetbeat.yml <1>
+sudo ./packetbeat -e -c packetbeat.yml -d "publish"
+----------------------------------------------------------------------
+<1> You'll be running Packetbeat as root, so you need to change ownership
+of the configuration file (see
+{libbeat}/config-file-permissions.html[Config File Ownership and Permissions]
+in the _Beats Platform Reference_).
+
+*win:*
+
+[source,shell]
+----------------------------------------------------------------------
+PS C:\Program Files\Packetbeat> Start-Service packetbeat
+----------------------------------------------------------------------
+
+By default the log files are stored in `C:\ProgramData\packetbeat\Logs`.
+
+[float]
+=== Testing the Packetbeat Installation
+
+Packetbeat is now ready to capture data from your network traffic. You can test
+that it works by creating a simple HTTP request. For example:
+
+[source,shell]
+----------------------------------------------------------------------
+curl http://www.elastic.co/ > /dev/null
+----------------------------------------------------------------------
+
+Now verify that the data is present in Elasticsearch by issuing the following command:
+
+[source,shell]
+----------------------------------------------------------------------
+curl -XGET 'http://localhost:9200/packetbeat-*/_search?pretty'
+----------------------------------------------------------------------
+
+Make sure that you replace `localhost:9200` with the address of your Elasticsearch
+instance. The command should return data about the HTTP transaction you just created.
+
+[[packetbeat-sample-dashboards]]
+=== Step 5: Loading Sample Kibana Dashboards
+
+To make it easier for you to get application performance insights
+from packet data, we have created sample Packetbeat dashboards. The dashboards are provided as
+examples. We recommend that you
+http://www.elastic.co/guide/en/kibana/current/dashboard.html[customize] them
+to meet your needs.
+
+image:./images/packetbeat-statistics.png[Packetbeat statistics]
+
+:allplatforms:
+include::../../libbeat/docs/dashboards.asciidoc[]

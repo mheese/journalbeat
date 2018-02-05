@@ -1,0 +1,54 @@
+- module: system
+  metricsets:
+    # CPU stats
+    - cpu
+
+    # System Load stats
+    - load
+
+    # Per CPU core stats
+    #- core
+
+    # IO stats
+    #- diskio
+
+    # Per filesystem stats
+    - filesystem
+
+    # File system summary stats
+    - fsstat
+
+    # Memory stats
+    - memory
+
+    # Network stats
+    - network
+
+    # Per process stats
+    - process
+
+    # Sockets and connection info (linux only)
+    #- socket
+  enabled: true
+  period: 10s
+  processes: ['.*']
+
+  # if true, exports the CPU usage in ticks, together with the percentage values
+  #cpu_ticks: false
+
+  # A list of filesystem types to ignore. The filesystem metricset will not
+  # collect data from filesystems matching any of the specified types, and
+  # fsstats will not include data from these filesystems in its summary stats.
+  #filesystem.ignore_types: []
+
+  # Enable collection of cgroup metrics from processes on Linux.
+  #process.cgroups.enabled: true
+
+  # A list of regular expressions used to whitelist environment variables
+  # reported with the process metricset's events. Defaults to empty.
+  #process.env.whitelist: []
+
+  # Configure reverse DNS lookup on remote IP addresses in the socket metricset.
+  #socket.reverse_lookup.enabled: false
+  #socket.reverse_lookup.success_ttl: 60s
+  #socket.reverse_lookup.failure_ttl: 60s

@@ -290,6 +290,8 @@ func (b *Beat) configure() error {
 	if err != nil {
 		return fmt.Errorf("error initializing logging: %v", err)
 	}
+	// Disable stderr logging if requested by cmdline flag
+	logp.SetStderr()
 
 	// log paths values to help with troubleshooting
 	logp.Info(paths.Paths.String())
