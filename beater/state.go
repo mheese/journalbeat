@@ -56,6 +56,7 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 	jb.wg.Add(1)
 	defer jb.wg.Done()
 	pending := map[string]common.MapStr{}
+	dirty := false
 	completed := map[string]common.MapStr{}
 
 	// diff returns the difference between this map and the other.
@@ -120,18 +121,26 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 		case p, ok := <-jb.pending:
 			if ok {
 				pending[p.cursor] = p.body
+				dirty = true
 			}
 		case c, ok := <-jb.completed:
 			if ok {
 				completed[c.cursor] = c.body
+				dirty = true
 			}
 		case <-tick:
-			result := diff(pending, completed)
-			if err := flush(result, jb.config.PendingQueue.File); err != nil {
-				logp.Err("error writing %s: %s", jb.config.PendingQueue.File, err)
+			if dirty {
+				result := diff(pending, completed)
+				logp.Debug("pendingqueue", "Saving the pending queue, consists of %d messages", len(result))
+				if err := flush(result, jb.config.PendingQueue.File); err != nil {
+					logp.Err("error writing %s: %s", jb.config.PendingQueue.File, err)
+				}
+				pending = result
+				completed = map[string]common.MapStr{}
+				dirty = false
+			} else {
+				logp.Debug("pendingqueue", "Pending queue did not change")
 			}
-			pending = result
-			completed = map[string]common.MapStr{}
 		}
 	}
 }
