@@ -61,6 +61,9 @@ journalbeat:
   # Custom Journal patterns to match on other than UNIT
   #match_patterns: ["FIELD=value"]
 
+  # Specificies syslog identifiers to monitor.
+  #identifiers: ["docker"]
+
   # Specify Journal paths to open. You can pass an array of paths to Systemd Journal paths.
   # If you want to open Journal from directory just pass an array consisting of one element
   # representing the path. See: https://www.freedesktop.org/software/systemd/man/sd_journal_open.html
