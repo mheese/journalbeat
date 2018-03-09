@@ -369,14 +369,7 @@ func getPipeline(data outputs.Data, pipelineSel *outil.Selector) (string, error)
 // or can be overload by the event through setting index
 func getIndex(event common.MapStr, index outil.Selector) string {
 
-	var ts time.Time
-	if timestamp, ok := event["@timestamp"].(common.Time); ok {
-		ts = time.Time(timestamp).UTC()
-
-	} else {
-		ts = time.Now().UTC()
-		logp.Err("@timestamp is not a common.Time but is %T in event %#v", event["@timestamp"], event)
-	}
+	ts := time.Time(event["@timestamp"].(common.Time)).UTC()
 
 	// Check for dynamic index
 	// XXX: is this used/needed?
