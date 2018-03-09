@@ -57,6 +57,7 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 	defer jb.wg.Done()
 	pending := map[string]common.MapStr{}
 	completed := map[string]common.MapStr{}
+	queueChanged := false
 
 	// diff returns the difference between this map and the other.
 	diff := func(this, other map[string]common.MapStr) map[string]common.MapStr {
@@ -120,17 +121,24 @@ func (jb *Journalbeat) managePendingQueueLoop() {
 		case p, ok := <-jb.pending:
 			if ok {
 				pending[p.cursor] = p.body
+				queueChanged = true
 			}
 		case c, ok := <-jb.completed:
 			if ok {
 				completed[c.cursor] = c.body
+				queueChanged = true
 			}
 		case <-tick:
+			if !queueChanged {
+				logp.Debug("pendingqueue", "Pending queue did not change")
+				continue
+			}
 			result := diff(pending, completed)
 			if err := flush(result, jb.config.PendingQueue.File); err != nil {
 				logp.Err("error writing %s: %s", jb.config.PendingQueue.File, err)
 			}
 			pending = result
+			queueChanged = false
 			completed = map[string]common.MapStr{}
 		}
 	}
