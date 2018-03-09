@@ -30,3 +30,7 @@ build/
 /Dockerfile
 /journalbeat.yml
 vendor/github.com/coreos/go-systemd/sdjournal/systemd/
+journalbeat
+
+# IDE
+.idea/
