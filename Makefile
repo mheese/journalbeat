@@ -58,6 +58,12 @@ build/Dockerfile:
 	cp docker/dockerfile.release build/Dockerfile
 
 #
+# Copy the entrypoint for release to the build directory
+#
+build/entrypoint:
+	cp docker/entrypoint.sh build/entrypoint
+
+#
 # Copy the default journalbeat.yml for release to the build directory
 #
 build/journalbeat.yml:
@@ -66,16 +72,23 @@ build/journalbeat.yml:
 #
 # docker tag the image
 #
-docker-tag: docker-build
+docker-tag: docker-test
 	echo $(TAGS) | xargs -n 1 docker tag $(IMAGE_NAME)
 .PHONY: docker-tag
 
 #
 # docker build the image
 #
-docker-build: build build/Dockerfile build/journalbeat.yml
+docker-build: build build/Dockerfile build/journalbeat.yml build/entrypoint
 	cd build && docker build -t $(IMAGE_NAME) .
 .PHONY: docker-build
+
+#
+# test the built docker image
+#
+docker-test: docker-build
+	cd build && docker run --rm -e LOGSTASH_HOST=localhost -t $(IMAGE_NAME) -configtest
+.PHONY: docker-test
 
 #
 # docker push all tags

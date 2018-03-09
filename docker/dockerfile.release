@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get purge -y --auto-remove && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /data
-WORKDIR /
-COPY journalbeat journalbeat.yml ./
+COPY journalbeat journalbeat.yml entrypoint /
+RUN chmod 0755 /entrypoint /journalbeat
 
-CMD ["./journalbeat", "-e", "-c", "journalbeat.yml"]
+ENTRYPOINT ["/entrypoint"]
