@@ -38,6 +38,7 @@ type Config struct {
 	DefaultType          string             `config:"default_type"`
 	Units                []string           `config:"units"`
 	Kernel               bool               `config:"kernel"`
+	Identifiers          []string           `config:"identifiers"`
 	JournalPaths         []string           `config:"journal_paths"`
 	MatchPatterns        []string           `config:"match_patterns"`
 }
@@ -82,7 +83,7 @@ var (
 			CompletedQueueSize: CompletedQueueSize,
 		},
 		DefaultType: "journal",
-		Kernel: true,
+		Kernel:      true,
 	}
 )
 
