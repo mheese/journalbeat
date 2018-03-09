@@ -55,6 +55,9 @@ journalbeat:
   # Specific units to monitor.
   #units: ["httpd.service"]
 
+  # gather kernel logs when units are provided
+  #kernel: true
+
   # Custom Journal patterns to match on other than UNIT
   #match_patterns: ["FIELD=value"]
 

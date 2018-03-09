@@ -37,6 +37,7 @@ type Config struct {
 	MoveMetadataLocation string             `config:"move_metadata_to_field"`
 	DefaultType          string             `config:"default_type"`
 	Units                []string           `config:"units"`
+	Kernel               bool               `config:"kernel"`
 	JournalPaths         []string           `config:"journal_paths"`
 	MatchPatterns        []string           `config:"match_patterns"`
 }
@@ -81,6 +82,7 @@ var (
 			CompletedQueueSize: CompletedQueueSize,
 		},
 		DefaultType: "journal",
+		Kernel: true,
 	}
 )
 
