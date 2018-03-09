@@ -39,6 +39,7 @@ type Config struct {
 	Units                []string           `config:"units"`
 	Kernel               bool               `config:"kernel"`
 	JournalPaths         []string           `config:"journal_paths"`
+	MatchPatterns        []string           `config:"match_patterns"`
 }
 
 type pendingQueueConfig struct {

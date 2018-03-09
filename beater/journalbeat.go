@@ -87,6 +87,18 @@ func (jb *Journalbeat) initJournal() error {
 		return err
 	}
 
+	// add specific patterns to monitor if any
+	for _, pattern := range jb.config.MatchPatterns {
+		err = jb.journal.AddMatch(pattern)
+		if err == nil {
+			err = jb.journal.AddDisjunction()
+		}
+
+		if err != nil {
+			return fmt.Errorf("Filtering pattern %s failed: %v", pattern, err)
+    }
+  }
+
 	// add kernel logs
 	if err = jb.addKernel(); err != nil {
 		return err
