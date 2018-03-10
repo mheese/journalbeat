@@ -1,4 +1,0 @@
-FROM fedora:24
-MAINTAINER mheese
-
-RUN dnf install -y git tar gcc systemd systemd-devel make findutils && dnf -y clean all

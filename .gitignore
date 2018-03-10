@@ -27,7 +27,6 @@ Temporary Items
 # Build/package files
 bin/
 build/
-/Dockerfile
 /journalbeat.yml
 vendor/github.com/coreos/go-systemd/sdjournal/systemd/
 journalbeat
