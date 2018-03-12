@@ -1,11 +1,11 @@
-# Copyright (c) 2017 Marcus Heese
-
+# Copyright (c) 2018 Marcus Heese
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,8 +23,9 @@ COPY . /go/src/github.com/mheese/journalbeat
 
 WORKDIR /go/src/github.com/mheese/journalbeat
 
-RUN go test -race . ./beater &&\
-    go build -ldflags '-s -w' -o /journalbeat
+RUN go test -race . ./beater
+RUN go build -ldflags '-s -w' -o /journalbeat
+RUN chmod 0755 /journalbeat
 
 
 FROM debian:stretch-slim
@@ -38,6 +39,8 @@ RUN apt update &&\
 COPY --from=builder /journalbeat /
 
 COPY config/journalbeat.yml /
+
+RUN chmod 644 /journalbeat.yml
 
 ENTRYPOINT ["/journalbeat"]
 

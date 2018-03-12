@@ -2,17 +2,30 @@ sudo: required
 services:
 - docker
 install: true
-script:
-- docker build -t mheese/journalbeat:latest .
-- docker run -v ${PWD}:/ci --entrypoint /bin/cp mheese/journalbeat:latest /journalbeat /ci
-deploy:
-  skip_cleanup: true
-  provider: releases
-  api_key:
-    secure: WEXhY3uegdyYgl1j5SZsZRiHD0ZlXZz9hYzikKecjvJFUCPuQHc76acHJV1LIgwLEnb/LKOhW78/KvHCz7JPtkeOaeYfzVec40DNaSSL5iAEcVO0h1j4n8AhQQmMpikwFehwoQcJggBQC4U4hO7a86a3obIlTDeyAWwygMWTEi7927te5Z9EsWpO0+dfBTczQg+77k24eZdsBENjAlp2B8vp2pl0RidC3lSBHnEPh/WXLYfx3+3oDWpIlrWMg3/9iCJ5IVcxqWZa1qahc9btbPXBnttJt9vJg/LjZbyjoNHDgPP6j3RSPxdN9h6Bqm+kQCnxG/WAeZMzNjvti5KueKCkARPSH21XA60o4EmliBXfrvRivP4uq+ELiYrkzaIbge1OZlM6nnyKd0Diap9+ZYD/jEjtjJWFI9Fxbkub9BSZZrZvqmG93oNZ3AYV5cOSgpskNk2fEuG91HDQk8mbsO8r2fN/WgjhfTEAQjKKWdt1jpFF08+UBcCgqYrnHZXyK/bI4XPJEIardzyvPvl6yJcIXQ0H/53RwUfdTQ3FKJo20lM+xGQe+kkimv1AAqa33fe+mLhP0OYFCjGesF7XlQNdQjn+TCeIMvrbQCN6OMyMcrz1LAo//Zk6fMF1XOvn9M3Qd0kLGyphw1bJrdnCz6cZm/SYcwZBjlCzwfIeh54=
-  file:
-  - journalbeat
-  on:
-    repo: mheese/journalbeat
-    branch: master
-    tags: true
+jobs:
+  include:
+  - stage: build journalbeat
+    script:
+    - docker build --pull -t journalbeat .
+    - docker run --rm -e LOGSTASH_HOST=localhost journalbeat -configtest
+  - stage: release
+    if: tag =~ ^v(\d\.){0,2}\d
+    script:
+    - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+    - docker build --pull -t mheese/journalbeat:latest .
+    - docker run --rm -v ${PWD}:/ci --entrypoint /bin/cp mheese/journalbeat:latest /journalbeat /ci
+    - docker tag mheese/journalbeat:latest mheese/journalbeat:${TRAVIS_TAG}
+    - docker push mheese/journalbeat:latest
+    - docker push mheese/journalbeat:${TRAVIS_TAG}
+    - echo ${TRAVIS_TAG}
+    deploy:
+      skip_cleanup: true
+      provider: releases
+      api_key:
+        secure: WEXhY3uegdyYgl1j5SZsZRiHD0ZlXZz9hYzikKecjvJFUCPuQHc76acHJV1LIgwLEnb/LKOhW78/KvHCz7JPtkeOaeYfzVec40DNaSSL5iAEcVO0h1j4n8AhQQmMpikwFehwoQcJggBQC4U4hO7a86a3obIlTDeyAWwygMWTEi7927te5Z9EsWpO0+dfBTczQg+77k24eZdsBENjAlp2B8vp2pl0RidC3lSBHnEPh/WXLYfx3+3oDWpIlrWMg3/9iCJ5IVcxqWZa1qahc9btbPXBnttJt9vJg/LjZbyjoNHDgPP6j3RSPxdN9h6Bqm+kQCnxG/WAeZMzNjvti5KueKCkARPSH21XA60o4EmliBXfrvRivP4uq+ELiYrkzaIbge1OZlM6nnyKd0Diap9+ZYD/jEjtjJWFI9Fxbkub9BSZZrZvqmG93oNZ3AYV5cOSgpskNk2fEuG91HDQk8mbsO8r2fN/WgjhfTEAQjKKWdt1jpFF08+UBcCgqYrnHZXyK/bI4XPJEIardzyvPvl6yJcIXQ0H/53RwUfdTQ3FKJo20lM+xGQe+kkimv1AAqa33fe+mLhP0OYFCjGesF7XlQNdQjn+TCeIMvrbQCN6OMyMcrz1LAo//Zk6fMF1XOvn9M3Qd0kLGyphw1bJrdnCz6cZm/SYcwZBjlCzwfIeh54=
+      file:
+      - journalbeat
+      on:
+        repo: mheese/journalbeat
+        branch: master
+        tags: true
