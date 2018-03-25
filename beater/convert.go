@@ -22,6 +22,46 @@ import (
 	"github.com/elastic/beats/libbeat/common"
 )
 
+// SyslogFacilityString is a map containing the textual equivalence of a given facility number
+var SyslogFacilityString = map[string]string{
+	"0":  "kernel",
+	"1":  "user",
+	"2":  "mail",
+	"3":  "daemon",
+	"4":  "auth",
+	"5":  "syslog",
+	"6":  "line printer",
+	"7":  "network news",
+	"8":  "uucp",
+	"9":  "clock daemon",
+	"10": "security/auth",
+	"11": "ftp",
+	"12": "ntp",
+	"13": "log audit",
+	"14": "log alert",
+	"15": "clock daemon",
+	"16": "local0",
+	"17": "local1",
+	"18": "local2",
+	"19": "local3",
+	"20": "local4",
+	"21": "local5",
+	"22": "local6",
+	"23": "local7",
+}
+
+// PriorityConversionMap is a map containing the textual equivalence of a given priority string number
+var PriorityConversionMap = map[string]string{
+	"0": "emergency",
+	"1": "alert",
+	"2": "critical",
+	"3": "error",
+	"4": "warning",
+	"5": "notice",
+	"6": "informational",
+	"7": "debug",
+}
+
 // MapStrFromJournalEntry takes a JournalD entry and converts it to an event
 // that is more compatible with the Elasitc products. It will perform the
 // following additional steps to an event:
@@ -29,7 +69,7 @@ import (
 // - remove underscores from the beginning of fields as they are reserved in
 //   ElasticSearch for metadata information
 // - fields that can be converted to numbers, will be converted to numbers
-func MapStrFromJournalEntry(ev *sdjournal.JournalEntry, cleanKeys bool, convertToNumbers bool, MoveMetadataLocation string) common.MapStr {
+func MapStrFromJournalEntry(ev *sdjournal.JournalEntry, cleanKeys bool, convertToNumbers bool, MoveMetadataLocation string, ParsePriority bool, ParseFacility bool) common.MapStr {
 	m := common.MapStr{}
 	// for the sake of MoveMetadataLocation we will write all the JournalEntry data except the "message" here
 	target := m
@@ -46,6 +86,12 @@ func MapStrFromJournalEntry(ev *sdjournal.JournalEntry, cleanKeys bool, convertT
 	// range over the JournalEntry Fields and convert to the common.MapStr
 	for k, v := range ev.Fields {
 		nk := makeNewKey(k, cleanKeys)
+		if nk == "priority" && ParsePriority {
+			v = PriorityConversionMap[v]
+		}
+		if nk == "syslog_facility" && ParseFacility {
+			v = PriorityConversionMap[v]
+		}
 		nv := makeNewValue(v, convertToNumbers)
 		// message Field should be on the top level of the event
 		if nk == "message" {

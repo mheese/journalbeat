@@ -251,7 +251,9 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 			rawEvent,
 			jb.config.CleanFieldNames,
 			jb.config.ConvertToNumbers,
-			jb.config.MoveMetadataLocation)
+			jb.config.MoveMetadataLocation,
+			jb.config.ParsePriority,
+			jb.config.ParseSyslogFacility)
 
 		if _, ok := event["type"].(string); !ok {
 			event["type"] = jb.config.DefaultType

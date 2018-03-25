@@ -41,6 +41,8 @@ type Config struct {
 	Identifiers          []string           `config:"identifiers"`
 	JournalPaths         []string           `config:"journal_paths"`
 	MatchPatterns        []string           `config:"match_patterns"`
+	ParseSyslogFacility  bool               `config:"parse_syslog_facility"`
+	ParsePriority        bool               `config:"parse_priority"`
 }
 
 type pendingQueueConfig struct {
