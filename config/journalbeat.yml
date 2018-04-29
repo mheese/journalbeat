@@ -7,6 +7,8 @@ journalbeat:
   clean_field_names: true
   convert_to_numbers: false
   move_metadata_to_field: journal
+  parse_syslog_facility: true
+  parse_priority: true
 
 name: journalbeat
 
