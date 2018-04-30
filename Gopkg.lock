@@ -88,8 +88,8 @@
     "metricbeat/schema",
     "metricbeat/schema/mapstriface"
   ]
-  revision = "709b21ca5c9ef53f1217cb94522d8e720d1e4027"
-  version = "v5.6.8"
+  revision = "12bcd55d7f8f678bb1e513679e2da71810f91d63"
+  version = "v5.6.9"
 
 [[projects]]
   name = "github.com/elastic/go-lumber"
@@ -212,6 +212,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cea8a660d231beb6022d1898334192335c8d8dc34aa96142ed5623286ea1ec41"
+  inputs-digest = "108f57574325e2e5212847c83d53911127618b61127f4a34bea37523556dce06"
   solver-name = "gps-cdcl"
   solver-version = 1
