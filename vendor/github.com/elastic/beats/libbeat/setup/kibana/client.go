@@ -10,7 +10,10 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/elastic/beats/libbeat/common"
+	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/outputs"
 	"github.com/elastic/beats/libbeat/outputs/transport"
 )
@@ -30,12 +33,30 @@ type Client struct {
 }
 
 func addToURL(_url, _path string, params url.Values) string {
-
 	if len(params) == 0 {
 		return _url + _path
 	}
 
 	return strings.Join([]string{_url, _path, "?", params.Encode()}, "")
+}
+
+func extractError(result []byte) error {
+	var kibanaResult struct {
+		Objects []struct {
+			Error struct {
+				Message string
+			}
+		}
+	}
+	if err := json.Unmarshal(result, &kibanaResult); err != nil {
+		return errors.Wrap(err, "parsing kibana response")
+	}
+	for _, o := range kibanaResult.Objects {
+		if o.Error.Message != "" {
+			return errors.New(kibanaResult.Objects[0].Error.Message)
+		}
+	}
+	return nil
 }
 
 func NewKibanaClient(cfg *common.Config) (*Client, error) {
@@ -66,6 +87,8 @@ func NewKibanaClient(cfg *common.Config) (*Client, error) {
 		kibanaURL = u.String()
 	}
 
+	logp.Info("Kibana url: %s", kibanaURL)
+
 	var dialer, tlsDialer transport.Dialer
 
 	tlsConfig, err := outputs.LoadTLSConfig(config.TLS)
@@ -95,7 +118,7 @@ func NewKibanaClient(cfg *common.Config) (*Client, error) {
 	}
 
 	if err = client.SetVersion(); err != nil {
-		return nil, fmt.Errorf("fail to get the Kibana version:%v", err)
+		return nil, fmt.Errorf("fail to get the Kibana version: %v", err)
 	}
 
 	return client, nil
@@ -138,6 +161,7 @@ func (conn *Connection) Request(method, extraPath string,
 		return 0, nil, fmt.Errorf("fail to read response %s", err)
 	}
 
+	retError = extractError(result)
 	return resp.StatusCode, result, retError
 }
 
@@ -154,8 +178,9 @@ func (client *Client) SetVersion() error {
 		Name    string `json:"name"`
 		Version string `json:"version"`
 	}
-	_, result, err := client.Connection.Request("GET", "/api/status", nil, nil)
-	if err != nil {
+
+	code, result, err := client.Connection.Request("GET", "/api/status", nil, nil)
+	if err != nil || code >= 400 {
 		return fmt.Errorf("HTTP GET request to /api/status fails: %v. Response: %s.",
 			err, truncateString(result))
 	}
@@ -174,15 +199,14 @@ func (client *Client) SetVersion() error {
 				client.Connection.URL, truncateString(result), err5x, err)
 		}
 		client.version = kibanaVersion5x.Version
-
 	} else {
+
 		client.version = kibanaVersion.Version.Number
 
 		if kibanaVersion.Version.Snapshot {
 			// needed for the tests
 			client.version = client.version + "-SNAPSHOT"
 		}
-
 	}
 
 	return nil
@@ -190,8 +214,15 @@ func (client *Client) SetVersion() error {
 
 func (client *Client) GetVersion() string { return client.version }
 
-func (client *Client) ImportJSON(url string, params url.Values, body io.Reader) error {
-	statusCode, response, err := client.Connection.Request("POST", url, params, body)
+func (client *Client) ImportJSON(url string, params url.Values, jsonBody map[string]interface{}) error {
+
+	body, err := json.Marshal(jsonBody)
+	if err != nil {
+		logp.Err("Failed to json encode body (%v): %#v", err, jsonBody)
+		return fmt.Errorf("fail to marshal the json content: %v", err)
+	}
+
+	statusCode, response, err := client.Connection.Request("POST", url, params, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("%v. Response: %s", err, truncateString(response))
 	}

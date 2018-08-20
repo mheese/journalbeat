@@ -35,7 +35,15 @@
 
 [[constraint]]
   name = "github.com/elastic/beats"
-  version = "5.6.9"
+  version = "6.3.2"
+
+[[override]]
+  name = "github.com/rcrowley/go-metrics"
+  revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
+
+[[override]]
+  name = "github.com/elastic/go-txfile"
+  revision = "7e7e33cc236f30fff545f3ee2c35ada5b70b6b13"
 
 [prune]
   go-tests = true

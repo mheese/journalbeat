@@ -15,15 +15,13 @@
 package main
 
 import (
-	"log"
+	"os"
 
-	"github.com/elastic/beats/libbeat/beat"
-	"github.com/mheese/journalbeat/beater"
+	"github.com/mheese/journalbeat/cmd"
 )
 
 func main() {
-	err := beat.Run("journalbeat", "", beater.New)
-	if err != nil {
-		log.Fatal(err)
+	if err := cmd.RootCmd.Execute(); err != nil {
+		os.Exit(1)
 	}
 }

@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/beats/libbeat/testing"
 )
 
 type TLSConfig struct {
+
 	// List of allowed SSL/TLS protocol versions. Connections might be dropped
 	// after handshake succeeded, if TLS version in use is not listed.
 	Versions []TLSVersion
@@ -70,7 +72,12 @@ var tlsDefaultVersions = []TLSVersion{
 	TLSVersion12,
 }
 
-func TLSDialer(
+func TLSDialer(forward Dialer, config *TLSConfig, timeout time.Duration) (Dialer, error) {
+	return TestTLSDialer(testing.NullDriver, forward, config, timeout)
+}
+
+func TestTLSDialer(
+	d testing.Driver,
 	forward Dialer,
 	config *TLSConfig,
 	timeout time.Duration,
@@ -105,11 +112,12 @@ func TLSDialer(
 		}
 		m.Unlock()
 
-		return tlsDialWith(forward, network, address, timeout, tlsConfig, config)
+		return tlsDialWith(d, forward, network, address, timeout, tlsConfig, config)
 	}), nil
 }
 
 func tlsDialWith(
+	d testing.Driver,
 	dialer Dialer,
 	network, address string,
 	timeout time.Duration,
@@ -126,12 +134,21 @@ func tlsDialWith(
 	withTimeout := timeout > 0
 	if withTimeout {
 		if err := conn.SetDeadline(time.Now().Add(timeout)); err != nil {
+			d.Fatal("timeout", err)
 			_ = conn.Close()
 			return nil, err
 		}
 	}
 
-	if err := conn.Handshake(); err != nil {
+	if tlsConfig.InsecureSkipVerify {
+		d.Warn("security", "server's certificate chain verification is disabled")
+	} else {
+		d.Info("security", "server's certificate chain verification is enabled")
+	}
+
+	err = conn.Handshake()
+	d.Fatal("handshake", err)
+	if err != nil {
 		_ = conn.Close()
 		return nil, err
 	}
@@ -141,7 +158,7 @@ func tlsDialWith(
 		conn.SetDeadline(time.Time{})
 	}
 
-	if err := postVerifyTLSConnection(conn, config); err != nil {
+	if err := postVerifyTLSConnection(d, conn, config); err != nil {
 		_ = conn.Close()
 		return nil, err
 	}
@@ -149,12 +166,16 @@ func tlsDialWith(
 	return conn, nil
 }
 
-func postVerifyTLSConnection(conn *tls.Conn, config *TLSConfig) error {
+func postVerifyTLSConnection(d testing.Driver, conn *tls.Conn, config *TLSConfig) error {
 	st := conn.ConnectionState()
 
 	if !st.HandshakeComplete {
-		return errors.New("incomplete handshake")
+		err := errors.New("incomplete handshake")
+		d.Fatal("incomplete handshake", err)
+		return err
 	}
+
+	d.Info("TLS version", fmt.Sprintf("%v", TLSVersion(st.Version)))
 
 	// no more checks if no extra configs available
 	if config == nil {
@@ -170,7 +191,9 @@ func postVerifyTLSConnection(conn *tls.Conn, config *TLSConfig) error {
 		versionOK = versionOK || st.Version == uint16(version)
 	}
 	if !versionOK {
-		return fmt.Errorf("tls version %v not configured", TLSVersion(st.Version))
+		err := fmt.Errorf("tls version %v not configured", TLSVersion(st.Version))
+		d.Fatal("TLS version", err)
+		return err
 	}
 
 	return nil

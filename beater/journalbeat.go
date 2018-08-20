@@ -26,7 +26,6 @@ import (
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
-	"github.com/elastic/beats/libbeat/publisher"
 	"github.com/mheese/journalbeat/config"
 	"github.com/mheese/journalbeat/journal"
 )
@@ -35,7 +34,7 @@ import (
 type Journalbeat struct {
 	done   chan struct{}
 	config config.Config
-	client publisher.Client
+	client beat.Client
 
 	journal *sdjournal.Journal
 
@@ -178,7 +177,7 @@ func (jb *Journalbeat) publishPending() error {
 		// We need to convert the timestamp back to the correct type before trying to publish
 		timestamp, _ := time.Parse(time.RFC3339, event["@timestamp"].(string))
 		event["@timestamp"] = common.Time(timestamp)
-		ref := &eventReference{cursor, event}
+		ref := &eventReference{timestamp, cursor, event}
 		jb.pending <- ref
 		refs = append(refs, ref)
 	}
@@ -189,7 +188,11 @@ func (jb *Journalbeat) publishPending() error {
 			return nil
 		default:
 			// we need to clone to avoid races since map is a pointer...
-			jb.client.PublishEvent(ref.body.Clone(), publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed)
+			jb.client.Publish(beat.Event{
+				Timestamp: ref.timestamp,
+				Fields:    ref.body.Clone(),
+				Private:   ref,
+			})
 		}
 	}
 
@@ -217,13 +220,29 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 		return nil, err
 	}
 
-	jb.client = b.Publisher.Connect()
+	jb.client, err = b.Publisher.ConnectWith(beat.ClientConfig{
+		PublishMode: beat.GuaranteedSend,
+		Events:      &clientEventer{completed: jb.completed},
+		ACKEvents: func(i []interface{}) {
+			for _, v := range i {
+				ref, ok := v.(*eventReference)
+				if !ok {
+					logp.Warn("Received ack for unknown type %T", ref)
+					continue
+				}
+
+				jb.completed <- ref
+			}
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Error connecting to publisher: %v", err)
+	}
 	return jb, nil
 }
 
 // Run is the main event loop: read from journald and pass it to Publish
 func (jb *Journalbeat) Run(b *beat.Beat) error {
-	publishedChan := make(chan bool, 1)
 	logp.Info("Journalbeat is running!")
 	defer func() {
 		_ = jb.client.Close()
@@ -258,22 +277,26 @@ func (jb *Journalbeat) Run(b *beat.Beat) error {
 		if _, ok := event["type"].(string); !ok {
 			event["type"] = jb.config.DefaultType
 		}
-		event["@timestamp"] = common.Time(time.Unix(0, int64(rawEvent.RealtimeTimestamp)*1000))
+		timestamp := time.Unix(0, int64(rawEvent.RealtimeTimestamp)*1000)
+		event["@timestamp"] = common.Time(timestamp)
 		// add _REALTIME_TIMESTAMP until https://github.com/elastic/elasticsearch/issues/12829 is closed
 		event["@realtime_timestamp"] = int64(rawEvent.RealtimeTimestamp)
 
-		ref := &eventReference{rawEvent.Cursor, event}
+		ref := &eventReference{timestamp, rawEvent.Cursor, event}
 		select {
 		case <-jb.done:
 			return nil
-		case publishedChan <- jb.client.PublishEvent(event, publisher.Signal(&eventSignal{ref, jb.completed}), publisher.Guaranteed):
-			if published := <-publishedChan; published {
-				jb.pending <- ref
+		default:
+			jb.client.Publish(beat.Event{
+				Timestamp: timestamp,
+				Fields:    event,
+				Private:   ref,
+			})
+			jb.pending <- ref
 
-				// save cursor
-				if jb.config.WriteCursorState {
-					jb.cursorChan <- rawEvent.Cursor
-				}
+			// save cursor
+			if jb.config.WriteCursorState {
+				jb.cursorChan <- rawEvent.Cursor
 			}
 		}
 	}

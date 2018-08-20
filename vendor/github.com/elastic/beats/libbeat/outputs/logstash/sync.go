@@ -3,151 +3,175 @@ package logstash
 import (
 	"time"
 
-	"github.com/elastic/go-lumber/client/v2"
-
+	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/outputs"
 	"github.com/elastic/beats/libbeat/outputs/transport"
+	"github.com/elastic/beats/libbeat/publisher"
+	"github.com/elastic/go-lumber/client/v2"
 )
 
-const (
-	minWindowSize             int = 1
-	defaultStartMaxWindowSize int = 10
-)
-
-type client struct {
+type syncClient struct {
 	*transport.Client
-	client *v2.SyncClient
-	host   string
-	win    *window
+	client   *v2.SyncClient
+	observer outputs.Observer
+	win      *window
+	ttl      time.Duration
+	ticker   *time.Ticker
 }
 
-func newLumberjackClient(
+func newSyncClient(
+	beat beat.Info,
 	conn *transport.Client,
-	addr string,
-	config *logstashConfig,
-) (*client, error) {
-	c := &client{
-		Client: conn,
-		host:   addr,
+	observer outputs.Observer,
+	config *Config,
+) (*syncClient, error) {
+	c := &syncClient{
+		Client:   conn,
+		observer: observer,
+		ttl:      config.TTL,
 	}
 
 	if config.SlowStart {
-		maxWindowSize := config.BulkMaxSize
-		c.win = newWindower(defaultStartMaxWindowSize, maxWindowSize)
+		c.win = newWindower(defaultStartMaxWindowSize, config.BulkMaxSize)
+	}
+	if c.ttl > 0 {
+		c.ticker = time.NewTicker(c.ttl)
 	}
 
-	enc, err := makeLogstashEventEncoder(config.Index)
-	if err != nil {
-		return nil, err
-	}
-
-	cl, err := v2.NewSyncClientWithConn(conn,
+	var err error
+	enc := makeLogstashEventEncoder(beat, config.Index)
+	c.client, err = v2.NewSyncClientWithConn(conn,
 		v2.JSONEncoder(enc),
 		v2.Timeout(config.Timeout),
-		v2.CompressionLevel(config.CompressionLevel))
+		v2.CompressionLevel(config.CompressionLevel),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	c.client = cl
 	return c, nil
 }
 
-func (c *client) Connect(timeout time.Duration) error {
-	logp.Debug("logstash", "connect to logstash host %v", c.host)
-	return c.Client.Connect()
+func (c *syncClient) Connect() error {
+	logp.Debug("logstash", "connect")
+	err := c.Client.Connect()
+	if err != nil {
+		return err
+	}
+
+	if c.ticker != nil {
+		c.ticker = time.NewTicker(c.ttl)
+	}
+	return nil
 }
 
-func (c *client) Close() error {
-	logp.Debug("logstash", "close connection to logstash host %v", c.host)
+func (c *syncClient) Close() error {
+	if c.ticker != nil {
+		c.ticker.Stop()
+	}
+	logp.Debug("logstash", "close connection")
 	return c.Client.Close()
 }
 
-func (c *client) PublishEvent(data outputs.Data) error {
-	_, err := c.PublishEvents([]outputs.Data{data})
-	return err
+func (c *syncClient) reconnect() error {
+	if err := c.Client.Close(); err != nil {
+		logp.Err("error closing connection to logstash host %s: %s, reconnecting...", c.Host(), err)
+	}
+	return c.Client.Connect()
 }
 
-// PublishEvents sends all events to logstash. On error a slice with all events
-// not published or confirmed to be processed by logstash will be returned.
-func (c *client) PublishEvents(
-	data []outputs.Data,
-) ([]outputs.Data, error) {
-	publishEventsCallCount.Add(1)
-	totalNumberOfEvents := len(data)
+func (c *syncClient) Publish(batch publisher.Batch) error {
+	events := batch.Events()
+	st := c.observer
 
-	if len(data) == 0 {
-		return nil, nil
+	st.NewBatch(len(events))
+
+	if len(events) == 0 {
+		batch.ACK()
+		return nil
 	}
 
-	for len(data) > 0 {
+	for len(events) > 0 {
+		// check if we need to reconnect
+		if c.ticker != nil {
+			select {
+			case <-c.ticker.C:
+				if err := c.reconnect(); err != nil {
+					batch.Retry()
+					return err
+				}
+
+				// reset window size on reconnect
+				if c.win != nil {
+					c.win.windowSize = int32(defaultStartMaxWindowSize)
+				}
+			default:
+			}
+		}
+
 		var (
 			n   int
 			err error
 		)
+
 		if c.win == nil {
-			n, err = c.sendEvents(data)
+			n, err = c.sendEvents(events)
 		} else {
-			n, err = c.publishWindowed(data)
+			n, err = c.publishWindowed(events)
 		}
 
-		debug("%v events out of %v events sent to logstash host %v. Continue sending",
-			n, len(data), c.host)
+		debugf("%v events out of %v events sent to logstash host %s. Continue sending",
+			n, len(events), c.Host())
 
-		data = data[n:]
+		events = events[n:]
+		st.Acked(n)
 		if err != nil {
+			// return batch to pipeline before reporting/counting error
+			batch.RetryEvents(events)
+
 			if c.win != nil {
 				c.win.shrinkWindow()
 			}
 			_ = c.Close()
 
-			logp.Err("Failed to publish events (host: %v), caused by: %v", c.host, err)
+			logp.Err("Failed to publish events caused by: %v", err)
 
-			eventsNotAcked.Add(int64(len(data)))
-			ackedEvents.Add(int64(totalNumberOfEvents - len(data)))
-			return data, err
+			rest := len(events)
+			st.Failed(rest)
+
+			return err
 		}
 	}
-	ackedEvents.Add(int64(totalNumberOfEvents))
-	return nil, nil
+
+	batch.ACK()
+	return nil
 }
 
-// publishWindowed published events with current maximum window size to logstash
-// returning the total number of events sent (due to window size, or acks until
-// failure).
-func (c *client) publishWindowed(data []outputs.Data) (int, error) {
-	if len(data) == 0 {
-		return 0, nil
-	}
-
-	batchSize := len(data)
+func (c *syncClient) publishWindowed(events []publisher.Event) (int, error) {
+	batchSize := len(events)
 	windowSize := c.win.get()
-	debug("Try to publish %v events to logstash host %s with window size %v",
-		batchSize, c.host, windowSize)
+	debugf("Try to publish %v events to logstash host %s with window size %v",
+		batchSize, c.Host(), windowSize)
 
 	// prepare message payload
 	if batchSize > windowSize {
-		data = data[:windowSize]
+		events = events[:windowSize]
 	}
 
-	n, err := c.sendEvents(data)
+	n, err := c.sendEvents(events)
 	if err != nil {
 		return n, err
 	}
 
 	c.win.tryGrowWindow(batchSize)
-	return len(data), nil
+	return n, nil
 }
 
-func (c *client) sendEvents(data []outputs.Data) (int, error) {
-	if len(data) == 0 {
-		return 0, nil
-	}
-
-	window := make([]interface{}, len(data))
-	for i, d := range data {
-		window[i] = d
+func (c *syncClient) sendEvents(events []publisher.Event) (int, error) {
+	window := make([]interface{}, len(events))
+	for i := range events {
+		window[i] = &events[i].Content
 	}
 	return c.client.Send(window)
 }

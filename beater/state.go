@@ -23,32 +23,50 @@ import (
 	"sync"
 	"time"
 
+	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 )
 
 // eventSignal implements the op.Signaler interface
-type eventSignal struct {
-	ev        *eventReference
+type clientEventer struct {
 	completed chan<- *eventReference
 }
 
 // eventReference is used as a reference to the event being sent
 type eventReference struct {
-	cursor string
-	body   common.MapStr
+	timestamp time.Time
+	cursor    string
+	body      common.MapStr
 }
 
-func (ref *eventSignal) Completed() {
-	ref.completed <- ref.ev
+func (ref *clientEventer) FilteredOut(event beat.Event) {
+	ev, ok := event.Private.(*eventReference)
+	if !ok {
+		logp.Warn("Unknown type %T was filtered out", event.Private)
+		return
+	}
+
+	ref.completed <- ev
 }
 
-func (ref *eventSignal) Failed() {
-	logp.Warn("Failed to publish message with cursor %s", ref.ev.cursor)
+func (ref *clientEventer) DroppedOnPublish(event beat.Event) {
+	ev, ok := event.Private.(*eventReference)
+	if !ok {
+		logp.Warn("Unknown type %T was dropped on publish", event.Private)
+		return
+	}
+
+	logp.Warn("Failed to publish message with cursor %s", ev.cursor)
 }
 
-func (ref *eventSignal) Canceled() {
-	logp.Debug("pendingqueue", "Publishing message with cursor %s was canceled", ref.ev.cursor)
+func (ref *clientEventer) Published() {
+}
+
+func (ref *clientEventer) Closed() {
+}
+
+func (ref *clientEventer) Closing() {
 }
 
 // managePendingQueueLoop runs the loop which manages the set of events waiting to be acked

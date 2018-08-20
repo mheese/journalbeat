@@ -17,28 +17,15 @@ type elasticsearchConfig struct {
 	LoadBalance      bool               `config:"loadbalance"`
 	CompressionLevel int                `config:"compression_level" validate:"min=0, max=9"`
 	TLS              *outputs.TLSConfig `config:"ssl"`
+	BulkMaxSize      int                `config:"bulk_max_size"`
 	MaxRetries       int                `config:"max_retries"`
 	Timeout          time.Duration      `config:"timeout"`
-	SaveTopology     bool               `config:"save_topology"`
-	Template         Template           `config:"template"`
+	Backoff          Backoff            `config:"backoff"`
 }
 
-type Template struct {
-	Enabled   bool             `config:"enabled"`
-	Name      string           `config:"name"`
-	Path      string           `config:"path"`
-	Overwrite bool             `config:"overwrite"`
-	Versions  TemplateVersions `config:"versions"`
-}
-
-type TemplateVersions struct {
-	Es2x TemplateVersion `config:"2x"`
-	Es6x TemplateVersion `config:"6x"`
-}
-
-type TemplateVersion struct {
-	Enabled bool   `config:"enabled"`
-	Path    string `config:"path"`
+type Backoff struct {
+	Init time.Duration
+	Max  time.Duration
 }
 
 const (
@@ -58,12 +45,9 @@ var (
 		CompressionLevel: 0,
 		TLS:              nil,
 		LoadBalance:      true,
-		Template: Template{
-			Enabled: true,
-			Versions: TemplateVersions{
-				Es2x: TemplateVersion{Enabled: true},
-				Es6x: TemplateVersion{Enabled: true},
-			},
+		Backoff: Backoff{
+			Init: 1 * time.Second,
+			Max:  60 * time.Second,
 		},
 	}
 )

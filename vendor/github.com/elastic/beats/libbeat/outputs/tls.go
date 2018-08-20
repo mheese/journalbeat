@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/joeshaw/multierror"
+
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/libbeat/outputs/transport"
-	"github.com/joeshaw/multierror"
 )
 
 var (
@@ -128,10 +129,10 @@ func LoadTLSConfig(config *TLSConfig) (*transport.TLSConfig, error) {
 		curves = append(curves, tls.CurveID(id))
 	}
 
-	cert, err := loadCertificate(&config.Certificate)
+	cert, err := LoadCertificate(&config.Certificate)
 	logFail(err)
 
-	cas, errs := loadCertificateAuthorities(config.CAs)
+	cas, errs := LoadCertificateAuthorities(config.CAs)
 	logFail(errs...)
 
 	// fail, if any error occurred when loading certificate files
@@ -156,7 +157,7 @@ func LoadTLSConfig(config *TLSConfig) (*transport.TLSConfig, error) {
 	}, nil
 }
 
-func loadCertificate(config *CertificateConfig) (*tls.Certificate, error) {
+func LoadCertificate(config *CertificateConfig) (*tls.Certificate, error) {
 	certificate := config.Certificate
 	key := config.Key
 
@@ -172,13 +173,13 @@ func loadCertificate(config *CertificateConfig) (*tls.Certificate, error) {
 		return nil, nil
 	}
 
-	certPEM, err := readPEMFile(certificate, config.Passphrase)
+	certPEM, err := ReadPEMFile(certificate, config.Passphrase)
 	if err != nil {
 		logp.Critical("Failed reading certificate file %v: %v", certificate, err)
 		return nil, fmt.Errorf("%v %v", err, certificate)
 	}
 
-	keyPEM, err := readPEMFile(key, config.Passphrase)
+	keyPEM, err := ReadPEMFile(key, config.Passphrase)
 	if err != nil {
 		logp.Critical("Failed reading key file %v: %v", key, err)
 		return nil, fmt.Errorf("%v %v", err, key)
@@ -193,7 +194,7 @@ func loadCertificate(config *CertificateConfig) (*tls.Certificate, error) {
 	return &cert, nil
 }
 
-func readPEMFile(path, passphrase string) ([]byte, error) {
+func ReadPEMFile(path, passphrase string) ([]byte, error) {
 	pass := []byte(passphrase)
 	var blocks []*pem.Block
 
@@ -253,7 +254,7 @@ func readPEMFile(path, passphrase string) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func loadCertificateAuthorities(CAs []string) (*x509.CertPool, []error) {
+func LoadCertificateAuthorities(CAs []string) (*x509.CertPool, []error) {
 	errors := []error{}
 
 	if len(CAs) == 0 {
