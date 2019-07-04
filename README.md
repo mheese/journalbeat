@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/mheese/journalbeat.svg?branch=master)](https://travis-ci.org/mheese/journalbeat)
+# **Deprecation warning**
+
+Journalbeat is no longer maintained and developed. It has been superseded by the official Elastic [Journalbeat](https://www.elastic.co/guide/en/beats/journalbeat/current/journalbeat-overview.html). Please consult the official Elastic docs for further details.
 
 # Journalbeat
 
