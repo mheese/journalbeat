@@ -1,6 +1,6 @@
 # **Deprecation warning**
 
-Journalbeat is no longer maintained and developed. It has been superseded by the official Elastic [Journalbeat](https://www.elastic.co/guide/en/beats/journalbeat/current/journalbeat-overview.html). Please consult the official Elastic docs for further details.
+Journalbeat is no longer maintained and developed. It has been superseded by the official Elastic [Filebeat Journald input](https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-input-journald.html). Please consult the official Elastic docs for further details.
 
 # Journalbeat
 
